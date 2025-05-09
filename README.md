@@ -32,6 +32,7 @@ A comprehensive Go API project with RESTful endpoints, JWT authentication, cachi
       - [Understanding JWT\_ALLOWED\_ISSUERS](#understanding-jwt_allowed_issuers)
     - [Implementation Details](#implementation-details)
       - [Using Authentication](#using-authentication)
+      - [Available API Endpoints](#available-api-endpoints)
       - [Role-Based Access Control](#role-based-access-control)
       - [Error Handling](#error-handling)
     - [Security Best Practices](#security-best-practices)
@@ -43,12 +44,12 @@ A comprehensive Go API project with RESTful endpoints, JWT authentication, cachi
       - [Cache TTL Strategy](#cache-ttl-strategy)
       - [Cache Invalidation](#cache-invalidation)
     - [Caching Best Practices](#caching-best-practices)
-    - [Logging System](#logging-system)
-      - [Logging Configuration](#logging-configuration)
-      - [Log Output Options](#log-output-options)
-      - [Log Rotation](#log-rotation)
-      - [Testing Log Rotation](#testing-log-rotation)
-      - [Logging Best Practices](#logging-best-practices)
+  - [Logging System](#logging-system)
+    - [Logging Configuration](#logging-configuration)
+    - [Log Output Options](#log-output-options)
+    - [Log Rotation](#log-rotation)
+    - [Testing Log Rotation](#testing-log-rotation)
+    - [Logging Best Practices](#logging-best-practices)
   - [Database Operations](#database-operations)
     - [Migrations](#migrations)
     - [Seeding](#seeding)
@@ -70,12 +71,12 @@ A comprehensive Go API project with RESTful endpoints, JWT authentication, cachi
         - [Kubernetes Resources](#kubernetes-resources)
         - [Monitoring and Debugging](#monitoring-and-debugging)
       - [Production Deployment Considerations](#production-deployment-considerations)
-  - [License](#license)
   - [API Testing](#api-testing)
     - [Running the Tests](#running-the-tests)
     - [Test Coverage](#test-coverage)
     - [Testing Strategy](#testing-strategy)
     - [Extending Tests](#extending-tests)
+  - [License](#license)
 
 ## Features
 
@@ -948,10 +949,6 @@ For production deployments, consider:
 5. Configuring a proper Ingress controller with TLS
 6. Implementing proper monitoring and alerting
 
-## License
-
-This project is licensed under the GNU General Public License v2.0. See the LICENSE file for details.
-
 ## API Testing
 
 The project includes comprehensive unit tests for the REST API components, focusing on:
@@ -1007,3 +1004,7 @@ When adding new API endpoints, follow the same pattern to extend the tests:
 2. Create service tests for business logic
 3. Create repository tests or mocks for data access
 4. Run tests to ensure coverage is maintained
+
+## License
+
+This project is licensed under the GNU General Public License v2.0. See the LICENSE file for details.
