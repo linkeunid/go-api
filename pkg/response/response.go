@@ -61,8 +61,8 @@ func NoContent(w http.ResponseWriter, r *http.Request) {
 // Paginated sends a paginated response
 func Paginated(w http.ResponseWriter, r *http.Request, items interface{}, params pagination.Params, message string) {
 	paginatedData := pagination.PagedData{
-		Items: items,
-		Meta:  params,
+		Items:      items,
+		Pagination: params,
 	}
 
 	sendResponse(w, r, http.StatusOK, APIResponse{

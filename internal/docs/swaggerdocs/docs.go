@@ -411,8 +411,9 @@ const docTemplate = `{
         "github_com_linkeunid_go-api_pkg_pagination.PagedData": {
             "type": "object",
             "properties": {
+                "cacheInfo": {},
                 "items": {},
-                "meta": {
+                "pagination": {
                     "$ref": "#/definitions/github_com_linkeunid_go-api_pkg_pagination.Params"
                 }
             }

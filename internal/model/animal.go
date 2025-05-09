@@ -1,7 +1,6 @@
 package model
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/linkeunid/go-api/pkg/validator"
@@ -48,12 +47,7 @@ func (Animal) CacheEnabled() bool {
 
 // CacheTTL returns the time-to-live for this model in cache
 func (Animal) CacheTTL() time.Duration {
-	return 30 * time.Minute
-}
-
-// CacheKey returns a unique key for this model instance
-func (a Animal) CacheKey() string {
-	return fmt.Sprintf("animal:%d", a.ID)
+	return 15 * time.Minute
 }
 
 // Validate performs validation on the Animal model

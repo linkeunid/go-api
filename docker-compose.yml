@@ -29,6 +29,7 @@ services:
       - REDIS_PASSWORD=${REDIS_PASSWORD:-}
       - REDIS_DB=${REDIS_DB:-0}
       - REDIS_CACHE_TTL=${REDIS_CACHE_TTL:-15m}
+      - REDIS_PAGINATED_TTL=${REDIS_PAGINATED_TTL:-5m}
       - REDIS_QUERY_CACHING=${REDIS_QUERY_CACHING:-true}
       - REDIS_KEY_PREFIX=${REDIS_KEY_PREFIX:-linkeun_api:}
       - REDIS_POOL_SIZE=${REDIS_POOL_SIZE:-10}
@@ -76,7 +77,7 @@ services:
       - ./docker/mysql/init:/docker-entrypoint-initdb.d
       - ./docker/mysql/conf:/etc/mysql/conf.d
     ports:
-      - "${DB_HOST_PORT:-3307}:${DB_PORT:-3307}"
+      - "${DB_PORT:-3307}:${DB_PORT:-3307}"
     command: --port=${DB_PORT:-3307}
     healthcheck:
       test:
@@ -113,7 +114,7 @@ services:
       --requirepass "${REDIS_PASSWORD:-redis}"
       --port ${REDIS_PORT:-6380}
     ports:
-      - "${REDIS_HOST_PORT:-6380}:${REDIS_PORT:-6380}"
+      - "${REDIS_PORT:-6380}:${REDIS_PORT:-6380}"
     volumes:
       - redis_data:/data
     healthcheck:

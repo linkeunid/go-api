@@ -58,15 +58,16 @@ type DatabaseConfig struct {
 
 // RedisConfig holds Redis configuration
 type RedisConfig struct {
-	Enabled    bool
-	Host       string
-	Port       int
-	Password   string
-	DB         int
-	CacheTTL   time.Duration
-	QueryCache bool
-	KeyPrefix  string
-	PoolSize   int
+	Enabled      bool
+	Host         string
+	Port         int
+	Password     string
+	DB           int
+	CacheTTL     time.Duration
+	PaginatedTTL time.Duration
+	QueryCache   bool
+	KeyPrefix    string
+	PoolSize     int
 }
 
 // LoggingConfig holds logging configuration
@@ -126,15 +127,16 @@ func LoadConfig() *Config {
 			ConnMaxLifetime: getEnvAsDuration("DB_CONN_MAX_LIFETIME", 5*time.Minute),
 		},
 		Redis: RedisConfig{
-			Enabled:    getEnvAsBool("REDIS_ENABLED", false),
-			Host:       getEnv("REDIS_HOST", "localhost"),
-			Port:       getRedisPort(env),
-			Password:   getEnv("REDIS_PASSWORD", ""),
-			DB:         getEnvAsInt("REDIS_DB", 0),
-			CacheTTL:   getEnvAsDuration("REDIS_CACHE_TTL", 15*time.Minute),
-			QueryCache: getEnvAsBool("REDIS_QUERY_CACHING", true),
-			KeyPrefix:  getEnv("REDIS_KEY_PREFIX", "linkeun_api:"),
-			PoolSize:   getEnvAsInt("REDIS_POOL_SIZE", 10),
+			Enabled:      getEnvAsBool("REDIS_ENABLED", false),
+			Host:         getEnv("REDIS_HOST", "localhost"),
+			Port:         getRedisPort(env),
+			Password:     getEnv("REDIS_PASSWORD", ""),
+			DB:           getEnvAsInt("REDIS_DB", 0),
+			CacheTTL:     getEnvAsDuration("REDIS_CACHE_TTL", 15*time.Minute),
+			PaginatedTTL: getEnvAsDuration("REDIS_PAGINATED_TTL", 5*time.Minute),
+			QueryCache:   getEnvAsBool("REDIS_QUERY_CACHING", true),
+			KeyPrefix:    getEnv("REDIS_KEY_PREFIX", "linkeun_api:"),
+			PoolSize:     getEnvAsInt("REDIS_POOL_SIZE", 10),
 		},
 		Logging: LoggingConfig{
 			Level:      getLogLevel(env),

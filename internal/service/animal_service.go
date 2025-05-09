@@ -24,11 +24,24 @@ var (
 	ErrInvalidAnimalID = errors.New("invalid animal ID")
 )
 
+// AnimalResponse wraps an animal with metadata
+type AnimalResponse struct {
+	Data      *model.Animal         `json:"data"`
+	CacheInfo *repository.CacheInfo `json:"cacheInfo,omitempty"`
+}
+
+// AnimalCollectionResponse wraps multiple animals with metadata
+type AnimalCollectionResponse struct {
+	Data       []model.Animal        `json:"data"`
+	Pagination *pagination.Params    `json:"pagination,omitempty"`
+	CacheInfo  *repository.CacheInfo `json:"cacheInfo,omitempty"`
+}
+
 // AnimalService defines the interface for animal operations
 type AnimalService interface {
-	GetAll(ctx context.Context) ([]model.Animal, error)
-	GetAllPaginated(ctx context.Context, params pagination.Params) ([]model.Animal, pagination.Params, error)
-	GetByID(ctx context.Context, id string) (*model.Animal, error)
+	GetAll(ctx context.Context) (AnimalCollectionResponse, error)
+	GetAllPaginated(ctx context.Context, params pagination.Params) (AnimalCollectionResponse, error)
+	GetByID(ctx context.Context, id string) (AnimalResponse, error)
 	Create(ctx context.Context, animal *model.Animal) error
 	Update(ctx context.Context, id string, animal *model.Animal) error
 	Delete(ctx context.Context, id string) error
@@ -55,50 +68,70 @@ func NewAnimalService(
 }
 
 // GetAll retrieves all animals
-func (s *AnimalServiceImpl) GetAll(ctx context.Context) ([]model.Animal, error) {
+func (s *AnimalServiceImpl) GetAll(ctx context.Context) (AnimalCollectionResponse, error) {
 	// Add a timeout to the context
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	return s.repository.FindAll(ctx)
+	result, err := s.repository.FindAll(ctx)
+	if err != nil {
+		return AnimalCollectionResponse{}, err
+	}
+
+	return AnimalCollectionResponse{
+		Data:      result.Data,
+		CacheInfo: result.CacheInfo,
+	}, nil
 }
 
 // GetAllPaginated retrieves paginated animals
-func (s *AnimalServiceImpl) GetAllPaginated(ctx context.Context, params pagination.Params) ([]model.Animal, pagination.Params, error) {
+func (s *AnimalServiceImpl) GetAllPaginated(ctx context.Context, params pagination.Params) (AnimalCollectionResponse, error) {
 	// Add a timeout to the context
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	return s.repository.FindAllPaginated(ctx, params)
+	result, err := s.repository.FindAllPaginated(ctx, params)
+	if err != nil {
+		return AnimalCollectionResponse{}, err
+	}
+
+	return AnimalCollectionResponse{
+		Data:       result.Data,
+		Pagination: result.Pagination,
+		CacheInfo:  result.CacheInfo,
+	}, nil
 }
 
 // GetByID retrieves an animal by ID
-func (s *AnimalServiceImpl) GetByID(ctx context.Context, id string) (*model.Animal, error) {
+func (s *AnimalServiceImpl) GetByID(ctx context.Context, id string) (AnimalResponse, error) {
 	if id == "" {
-		return nil, ErrInvalidAnimalData
+		return AnimalResponse{}, ErrInvalidAnimalData
 	}
 
 	// Convert string ID to uint64
 	numericID, err := strconv.ParseUint(id, 10, 64)
 	if err != nil {
 		s.logger.Error("Invalid animal ID format", zap.String("id", id), zap.Error(err))
-		return nil, ErrInvalidAnimalID
+		return AnimalResponse{}, ErrInvalidAnimalID
 	}
 
 	// Add a timeout to the context
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	animal, err := s.repository.FindByID(ctx, numericID)
+	result, err := s.repository.FindByID(ctx, numericID)
 	if err != nil {
-		return nil, err
+		return AnimalResponse{}, err
 	}
 
-	if animal == nil {
-		return nil, ErrAnimalNotFound
+	if result.Data == nil {
+		return AnimalResponse{}, ErrAnimalNotFound
 	}
 
-	return animal, nil
+	return AnimalResponse{
+		Data:      result.Data,
+		CacheInfo: result.CacheInfo,
+	}, nil
 }
 
 // Create creates a new animal
@@ -135,17 +168,17 @@ func (s *AnimalServiceImpl) Update(ctx context.Context, id string, animal *model
 	defer cancel()
 
 	// Check if the animal exists
-	existing, err := s.repository.FindByID(ctx, numericID)
+	result, err := s.repository.FindByID(ctx, numericID)
 	if err != nil {
 		return err
 	}
 
-	if existing == nil {
+	if result.Data == nil {
 		return ErrAnimalNotFound
 	}
 
 	// Preserve created_at timestamp
-	animal.CreatedAt = existing.CreatedAt
+	animal.CreatedAt = result.Data.CreatedAt
 
 	return s.repository.Update(ctx, animal)
 }
@@ -168,12 +201,12 @@ func (s *AnimalServiceImpl) Delete(ctx context.Context, id string) error {
 	defer cancel()
 
 	// Check if the animal exists
-	existing, err := s.repository.FindByID(ctx, numericID)
+	result, err := s.repository.FindByID(ctx, numericID)
 	if err != nil {
 		return err
 	}
 
-	if existing == nil {
+	if result.Data == nil {
 		return ErrAnimalNotFound
 	}
 

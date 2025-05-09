@@ -22,8 +22,9 @@ type Params struct {
 
 // PagedData represents a paginated data response
 type PagedData struct {
-	Items interface{} `json:"items"`
-	Meta  Params      `json:"meta"`
+	Items      interface{} `json:"items"`
+	Pagination Params      `json:"pagination"`
+	CacheInfo  interface{} `json:"cacheInfo,omitempty"`
 }
 
 // NewParams creates a new pagination parameters from HTTP request

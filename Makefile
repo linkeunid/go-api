@@ -80,6 +80,62 @@ define get_env
 $(shell if [ -f .env ]; then grep -E "^$(1)=" .env | cut -d= -f2 || echo "$(2)"; else echo "$(2)"; fi)
 endef
 
+# Helper function to flush Redis cache
+# Usage: $(call flush_redis_cache)
+define flush_redis_cache
+	@echo "🧹 Attempting to flush Redis cache..."
+	@if command -v redis-cli > /dev/null; then \
+		REDIS_HOST=$$(grep -E "^REDIS_HOST=" .env 2>/dev/null | cut -d= -f2 || echo "localhost"); \
+		REDIS_PORT=$$(grep -E "^REDIS_PORT=" .env 2>/dev/null | cut -d= -f2 || echo "6380"); \
+		REDIS_PASSWORD=$$(grep -E "^REDIS_PASSWORD=" .env 2>/dev/null | cut -d= -f2 || echo ""); \
+		echo "🔗 Connecting to Redis at $$REDIS_HOST:$$REDIS_PORT"; \
+		if [ -n "$$REDIS_PASSWORD" ]; then \
+			echo "🔑 Using password from .env file"; \
+			AUTH_RESULT=$$(redis-cli -h $$REDIS_HOST -p $$REDIS_PORT AUTH "$$REDIS_PASSWORD" 2>&1); \
+			if echo "$$AUTH_RESULT" | grep -q "OK"; then \
+				echo "✅ Authentication successful"; \
+				FLUSH_RESULT=$$(redis-cli -h $$REDIS_HOST -p $$REDIS_PORT -a "$$REDIS_PASSWORD" FLUSHDB 2>&1); \
+				if echo "$$FLUSH_RESULT" | grep -q "OK"; then \
+					echo "✅ Redis cache flushed successfully"; \
+				else \
+					echo "❌ Flush failed: $$FLUSH_RESULT"; \
+				fi; \
+			else \
+				echo "⚠️ Authentication failed: $$AUTH_RESULT"; \
+				echo "🔑 Trying with default fallback method..."; \
+				FLUSH_RESULT=$$(redis-cli -h $$REDIS_HOST -p $$REDIS_PORT -a "redis" FLUSHDB 2>&1); \
+				if echo "$$FLUSH_RESULT" | grep -q "OK"; then \
+					echo "✅ Redis cache flushed successfully with fallback"; \
+				else \
+					echo "❌ All authentication methods failed"; \
+					echo "   Please verify Redis is running and credentials are correct"; \
+					echo "   Redis error: $$FLUSH_RESULT"; \
+				fi; \
+			fi; \
+		else \
+			echo "🔑 No password found in .env file, trying without authentication..."; \
+			FLUSH_RESULT=$$(redis-cli -h $$REDIS_HOST -p $$REDIS_PORT FLUSHDB 2>&1); \
+			if echo "$$FLUSH_RESULT" | grep -q "OK"; then \
+				echo "✅ Redis cache flushed successfully"; \
+			elif echo "$$FLUSH_RESULT" | grep -q "NOAUTH"; then \
+				echo "🔑 Authentication required, trying with default 'redis' password..."; \
+				FALLBACK_RESULT=$$(redis-cli -h $$REDIS_HOST -p $$REDIS_PORT -a "redis" FLUSHDB 2>&1); \
+				if echo "$$FALLBACK_RESULT" | grep -q "OK"; then \
+					echo "✅ Redis cache flushed successfully with default password"; \
+				else \
+					echo "❌ Could not authenticate to Redis"; \
+					echo "   Please add the correct password to your .env file"; \
+					echo "   Redis error: $$FALLBACK_RESULT"; \
+				fi; \
+			else \
+				echo "❌ Could not connect to Redis: $$FLUSH_RESULT"; \
+			fi; \
+		fi; \
+	else \
+		echo "⚠️ redis-cli not found. Skipping cache flush."; \
+	fi
+endef
+
 # Build the application
 build:
 	@echo "🔨 Building application..."
@@ -94,6 +150,7 @@ run:
 # Development mode with hot reload (alias)
 dev:
 	@echo "🔄 Starting development server with hot reload..."
+	$(call flush_redis_cache)
 	@if command -v air > /dev/null; then \
 		air -c .air.toml; \
 	else \
@@ -307,6 +364,10 @@ sync-model-map:
 	@echo "🔄 Syncing model map (adding new models and removing deleted ones)..."
 	@go run ./cmd/model-mapper -sync
 
+# Add a new target to explicitly flush the Redis cache
+flush-redis:
+	$(call flush_redis_cache)
+
 # Aliases for common commands
 s: swagger
 su: swagger-ui
@@ -320,6 +381,7 @@ tra: truncate-all
 um: update-model-map
 cm: clean-model-map
 sm: sync-model-map
+fr: flush-redis
 
 # Docker commands
 docker-db: ## Start only database containers (MySQL and Redis)
@@ -429,7 +491,7 @@ env-info: ## Show environment variables used by the application
 	@echo "📝 Note: Values shown are actual values from .env or defaults if not defined"
 
 # Other aliases
-ei: env-info
+ei: env-info 
 
 # Setup project as template
 setup:

@@ -3,9 +3,11 @@ package controller
 import (
 	"context"
 	"net/http"
+	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/linkeunid/go-api/internal/model"
+	"github.com/linkeunid/go-api/internal/repository"
 	"github.com/linkeunid/go-api/internal/service"
 	"github.com/linkeunid/go-api/pkg/middleware"
 	"github.com/linkeunid/go-api/pkg/pagination"
@@ -59,21 +61,32 @@ func (a *Animal) GetAnimals(w http.ResponseWriter, r *http.Request) {
 
 	// Extract sort parameters and add to context
 	queryParams := make(map[string]string)
+
+	// Add query parameters to the context for cache key generation
+	queryParams["page"] = strconv.Itoa(params.Page)
+	queryParams["limit"] = strconv.Itoa(params.Limit)
 	queryParams["sort"] = r.URL.Query().Get("sort")
 	queryParams["direction"] = r.URL.Query().Get("direction")
 
-	// Create a new context with query parameters
-	ctxWithParams := context.WithValue(ctx, "queryParams", queryParams)
+	// Create a new context with query parameters using the typed key
+	ctxWithParams := context.WithValue(ctx, repository.KeyQueryParams, queryParams)
 
 	// Get paginated animals
-	animals, params, err := a.service.GetAllPaginated(ctxWithParams, params)
+	result, err := a.service.GetAllPaginated(ctxWithParams, params)
 	if err != nil {
 		a.logger.Error("Failed to get animals", zap.Error(err))
 		response.InternalServerError(w, r, err)
 		return
 	}
 
-	response.Paginated(w, r, animals, params, "Animals retrieved successfully")
+	// Create a paginated response with cache info
+	pagedData := pagination.PagedData{
+		Items:      result.Data,
+		Pagination: *result.Pagination,
+		CacheInfo:  result.CacheInfo,
+	}
+
+	response.Success(w, r, pagedData, "Animals retrieved successfully")
 }
 
 // GetAnimal returns a specific animal by ID
@@ -91,7 +104,7 @@ func (a *Animal) GetAnimal(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	animalID := chi.URLParam(r, "animalID")
 
-	animal, err := a.service.GetByID(ctx, animalID)
+	result, err := a.service.GetByID(ctx, animalID)
 	if err != nil {
 		if err == service.ErrAnimalNotFound {
 			response.NotFound(w, r, "Animal not found")
@@ -102,7 +115,7 @@ func (a *Animal) GetAnimal(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response.Success(w, r, animal, "Animal retrieved successfully")
+	response.Success(w, r, result, "Animal retrieved successfully")
 }
 
 // CreateAnimal creates a new animal

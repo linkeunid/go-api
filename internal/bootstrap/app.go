@@ -140,6 +140,25 @@ func initializeDatabase(cfg *config.Config, logger *zap.Logger) (database.Databa
 	// Create cache manager (nil for now)
 	var cacheManager database.CacheManager
 
+	// Initialize Redis cache manager if Redis is enabled
+	if cfg.Redis.Enabled {
+		logger.Info("Redis caching is enabled",
+			zap.String("host", cfg.Redis.Host),
+			zap.Int("port", cfg.Redis.Port),
+			zap.Duration("cacheTTL", cfg.Redis.CacheTTL))
+
+		// Initialize Redis cache manager
+		redisManager, err := database.NewRedisCacheManager(cfg, logger)
+		if err != nil {
+			logger.Warn("Failed to initialize Redis cache manager, continuing without caching", zap.Error(err))
+		} else {
+			cacheManager = redisManager
+			logger.Info("Redis cache manager initialized successfully")
+		}
+	} else {
+		logger.Info("Redis caching is disabled")
+	}
+
 	// Create database wrapper
 	dbWrapper := database.NewDatabase(cfg, logger, db, cacheManager)
 
