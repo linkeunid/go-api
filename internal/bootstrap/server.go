@@ -10,7 +10,10 @@ import (
 	"github.com/go-chi/cors"
 	"github.com/linkeunid/go-api/internal/controller"
 	swaggerdocs "github.com/linkeunid/go-api/internal/docs/swaggerdocs"
+	"github.com/linkeunid/go-api/pkg/auth"
+	"github.com/linkeunid/go-api/pkg/config"
 	custommiddleware "github.com/linkeunid/go-api/pkg/middleware"
+	"github.com/linkeunid/go-api/pkg/response"
 	"github.com/linkeunid/go-api/pkg/util"
 	httpSwagger "github.com/swaggo/http-swagger/v2"
 	"go.uber.org/zap"
@@ -31,8 +34,8 @@ func SetupSwagger(port int, isDevelopment bool) {
 		// annotations in the swagger.go file:
 		//
 		// @contact.name API Support - Website
-		// @contact.url https://linkeun.com/support
-		// @contact.email support@linkeun.com
+		// @contact.url http://linkeunid.com/support
+		// @contact.email Send email to API Support
 		//
 		// @license.name GNU General Public License v2.0
 		// @license.url https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html
@@ -46,6 +49,12 @@ func SetupServer(app *App, animalController *controller.Animal) *http.Server {
 
 	// Initialize router
 	r := chi.NewRouter()
+
+	// Create JWT service
+	jwtService := auth.NewJWTService(&cfg.Auth)
+
+	// Create auth middleware
+	authMiddleware := custommiddleware.NewAuthMiddleware(jwtService, &cfg.Auth, logger)
 
 	// Middleware
 	r.Use(chimiddleware.RequestID)
@@ -82,6 +91,54 @@ func SetupServer(app *App, animalController *controller.Animal) *http.Server {
 
 	// API routes
 	r.Route("/api/v1", func(r chi.Router) {
+		// Public routes
+		r.Route("/public", func(r chi.Router) {
+			r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+				data := map[string]string{
+					"message": "This is a public endpoint that doesn't require authentication",
+				}
+				response.Success(w, r, data, "Public API is working")
+			})
+		})
+
+		// Protected routes (require authentication)
+		r.Route("/protected", func(r chi.Router) {
+			// Apply authentication middleware to all routes in this group
+			r.Use(authMiddleware.Authenticate)
+
+			r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+				// Extract user information from context
+				userID := r.Context().Value(custommiddleware.KeyUserID)
+				username := r.Context().Value(custommiddleware.KeyUsername)
+				role := r.Context().Value(custommiddleware.KeyUserRole)
+				email := r.Context().Value(custommiddleware.KeyUserEmail)
+
+				data := map[string]interface{}{
+					"message": "This endpoint requires authentication",
+					"user": map[string]interface{}{
+						"id":       userID,
+						"username": username,
+						"role":     role,
+						"email":    email,
+					},
+				}
+				response.Success(w, r, data, "Protected API is working")
+			})
+
+			// Admin-only routes
+			r.Route("/admin", func(r chi.Router) {
+				// Apply role-based middleware
+				r.Use(authMiddleware.RequireRole("admin"))
+
+				r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+					data := map[string]string{
+						"message": "This endpoint requires admin role",
+					}
+					response.Success(w, r, data, "Admin API is working")
+				})
+			})
+		})
+
 		// Animal routes
 		animalController.RegisterRoutes(r)
 	})
@@ -98,8 +155,9 @@ func SetupServer(app *App, animalController *controller.Animal) *http.Server {
 }
 
 // LogServerInfo logs server startup information
-func LogServerInfo(logger *zap.Logger, port int, isDevelopment bool) {
+func LogServerInfo(logger *zap.Logger, port int, isDevelopment bool, config *config.Config) {
 	logger.Info("Starting server", zap.Int("port", port))
+	logger.Info("Auth configuration", zap.Bool("enabled", config.Auth.Enabled))
 	if isDevelopment {
 		logger.Info("Swagger UI available at", zap.String("url", fmt.Sprintf("http://localhost:%d/swagger/", port)))
 	}

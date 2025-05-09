@@ -28,7 +28,7 @@ func main() {
 
 	// Start the server in a goroutine
 	go func() {
-		bootstrap.LogServerInfo(logger, cfg.Server.Port, cfg.IsDevelopment())
+		bootstrap.LogServerInfo(logger, cfg.Server.Port, cfg.IsDevelopment(), cfg)
 		if err := server.ListenAndServe(); err != nil {
 			logger.Fatal("Server failed", zap.Error(err))
 		}

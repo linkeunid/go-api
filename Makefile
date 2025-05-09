@@ -16,6 +16,12 @@ help:
 	@echo "  make lint           - Lint code"
 	@echo "  make mocks          - Generate mocks for testing"
 	@echo ""
+	@echo "JWT Authentication:"
+	@echo "  make generate-token      - Generate JWT token with default settings"
+	@echo "  make generate-token-user id=123 - Generate JWT token for specific user ID"
+	@echo "  make generate-token-admin - Generate JWT token with admin role"
+	@echo "  make generate-token-force - Force token generation (works in any environment)"
+	@echo ""
 	@echo "Database migrations:"
 	@echo "  make migrate        - Run database migrations"
 	@echo "  make migrate-create name=NAME - Create a new migration"
@@ -68,11 +74,14 @@ help:
 	@echo "  make um             - Update model map for database operations"
 	@echo "  make cm             - Clean model map (removing non-existent models)"
 	@echo "  make sm             - Sync model map (adding new models and removing deleted ones)"
+	@echo "  make gt             - Generate JWT token with default settings"
+	@echo "  make gta            - Generate JWT token with admin role"
 	@echo "  make ddb            - Start database containers"
 	@echo "  make dup            - Start all containers"
 	@echo "  make ddown          - Stop all containers"
 	@echo "  make fps            - Show fancy container status"
 	@echo "  make ei             - Show environment info"
+	@echo "  make gtf            - Generate forced token"
 
 # Helper function to get env variable with default value
 # Usage: $(call get_env,VARIABLE_NAME,DEFAULT_VALUE)
@@ -368,6 +377,83 @@ sync-model-map:
 flush-redis:
 	$(call flush_redis_cache)
 
+# Generate JWT token with default settings
+generate-token:
+	@echo "🔑 Generating JWT token with default settings..."
+	@APP_ENV=$$(grep -E "^APP_ENV=" .env 2>/dev/null | cut -d= -f2 || echo "development"); \
+	if [ "$$APP_ENV" != "development" ] && [ "$$APP_ENV" != "test" ] && [ -n "$$APP_ENV" ]; then \
+		echo "❌ Error: Token generation is only available in development and test environments."; \
+		echo "Current environment: $$APP_ENV"; \
+		echo "Set APP_ENV to 'development' or 'test' to use this command."; \
+		exit 1; \
+	fi; \
+	if [ ! -f ./bin/token-generator ] || [ ./cmd/token-generator/main.go -nt ./bin/token-generator ]; then \
+		echo "🔨 Compiling token generator..."; \
+		mkdir -p ./bin; \
+		go build -o ./bin/token-generator ./cmd/token-generator; \
+	fi; \
+	JWT_SECRET=$$(grep -E "^JWT_SECRET=" .env 2>/dev/null | cut -d= -f2); \
+	if [ -z "$$JWT_SECRET" ]; then JWT_SECRET="default-dev-secret"; fi; \
+	./bin/token-generator --secret="$$JWT_SECRET"
+	@echo "✅ JWT token generation complete"
+
+# Generate JWT token with custom user ID
+generate-token-user:
+	@if [ -z "$(id)" ]; then \
+		echo "❌ User ID is required. Usage: make generate-token-user id=123"; \
+		exit 1; \
+	fi
+	@echo "🔑 Generating JWT token for user ID: $(id)..."
+	@APP_ENV=$$(grep -E "^APP_ENV=" .env 2>/dev/null | cut -d= -f2 || echo "development"); \
+	if [ "$$APP_ENV" != "development" ] && [ "$$APP_ENV" != "test" ] && [ -n "$$APP_ENV" ]; then \
+		echo "❌ Error: Token generation is only available in development and test environments."; \
+		echo "Current environment: $$APP_ENV"; \
+		echo "Set APP_ENV to 'development' or 'test' to use this command."; \
+		exit 1; \
+	fi; \
+	if [ ! -f ./bin/token-generator ] || [ ./cmd/token-generator/main.go -nt ./bin/token-generator ]; then \
+		echo "🔨 Compiling token generator..."; \
+		mkdir -p ./bin; \
+		go build -o ./bin/token-generator ./cmd/token-generator; \
+	fi; \
+	JWT_SECRET=$$(grep -E "^JWT_SECRET=" .env 2>/dev/null | cut -d= -f2); \
+	if [ -z "$$JWT_SECRET" ]; then JWT_SECRET="default-dev-secret"; fi; \
+	./bin/token-generator --secret="$$JWT_SECRET" --id=$(id)
+	@echo "✅ JWT token generation complete"
+
+# Generate JWT token with admin role
+generate-token-admin:
+	@echo "🔑 Generating JWT token with admin role..."
+	@APP_ENV=$$(grep -E "^APP_ENV=" .env 2>/dev/null | cut -d= -f2 || echo "development"); \
+	if [ "$$APP_ENV" != "development" ] && [ "$$APP_ENV" != "test" ] && [ -n "$$APP_ENV" ]; then \
+		echo "❌ Error: Token generation is only available in development and test environments."; \
+		echo "Current environment: $$APP_ENV"; \
+		echo "Set APP_ENV to 'development' or 'test' to use this command."; \
+		exit 1; \
+	fi; \
+	if [ ! -f ./bin/token-generator ] || [ ./cmd/token-generator/main.go -nt ./bin/token-generator ]; then \
+		echo "🔨 Compiling token generator..."; \
+		mkdir -p ./bin; \
+		go build -o ./bin/token-generator ./cmd/token-generator; \
+	fi; \
+	JWT_SECRET=$$(grep -E "^JWT_SECRET=" .env 2>/dev/null | cut -d= -f2); \
+	if [ -z "$$JWT_SECRET" ]; then JWT_SECRET="default-dev-secret"; fi; \
+	./bin/token-generator --secret="$$JWT_SECRET" --role=admin
+	@echo "✅ JWT token generation complete"
+
+# Force generate JWT token (works in any environment, for emergencies only)
+generate-token-force:
+	@echo "⚠️ WARNING: Forcing token generation regardless of environment!"
+	@if [ ! -f ./bin/token-generator ] || [ ./cmd/token-generator/main.go -nt ./bin/token-generator ]; then \
+		echo "🔨 Compiling token generator..."; \
+		mkdir -p ./bin; \
+		go build -o ./bin/token-generator ./cmd/token-generator; \
+	fi
+	@JWT_SECRET=$$(grep -E "^JWT_SECRET=" .env 2>/dev/null | cut -d= -f2); \
+	if [ -z "$$JWT_SECRET" ]; then JWT_SECRET="default-dev-secret"; fi; \
+	./bin/token-generator --secret="$$JWT_SECRET" --force
+	@echo "✅ Forced token generation complete (use for emergencies only)"
+
 # Aliases for common commands
 s: swagger
 su: swagger-ui
@@ -382,6 +468,9 @@ um: update-model-map
 cm: clean-model-map
 sm: sync-model-map
 fr: flush-redis
+gt: generate-token
+gta: generate-token-admin
+gtf: generate-token-force
 
 # Docker commands
 docker-db: ## Start only database containers (MySQL and Redis)
@@ -488,7 +577,11 @@ env-info: ## Show environment variables used by the application
 	@echo "   REDIS_HOST: $(call get_env,REDIS_HOST,localhost)"
 	@echo "   REDIS_PORT: $(call get_env,REDIS_PORT,6379)"
 	@echo "   REDIS_ENABLED: $(call get_env,REDIS_ENABLED,false)"
+	@echo "   AUTH_ENABLED: $(call get_env,AUTH_ENABLED,false)"
+	@echo "   JWT_EXPIRATION: $(call get_env,JWT_EXPIRATION,24h)"
+	@echo "   JWT_ALLOWED_ISSUERS: $(call get_env,JWT_ALLOWED_ISSUERS,linkeun-go-api)"
 	@echo "📝 Note: Values shown are actual values from .env or defaults if not defined"
+	@echo "🔒 Note: JWT_SECRET is not displayed for security reasons"
 
 # Other aliases
 ei: env-info 

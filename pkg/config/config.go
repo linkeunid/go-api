@@ -38,6 +38,7 @@ type Config struct {
 	Database    DatabaseConfig
 	Redis       RedisConfig
 	Logging     LoggingConfig
+	Auth        AuthConfig
 }
 
 // ServerConfig holds server configuration
@@ -75,6 +76,14 @@ type LoggingConfig struct {
 	Level      string
 	Format     string
 	OutputPath string
+}
+
+// AuthConfig holds authentication configuration
+type AuthConfig struct {
+	Enabled        bool          // Whether authentication is enabled
+	JWTSecret      string        // Secret key for JWT signing
+	JWTExpiration  time.Duration // JWT expiration time
+	AllowedIssuers []string      // Allowed JWT issuers
 }
 
 // LoadConfig loads application configuration from environment variables
@@ -142,6 +151,12 @@ func LoadConfig() *Config {
 			Level:      getLogLevel(env),
 			Format:     getEnv("LOG_FORMAT", "json"),
 			OutputPath: getEnv("LOG_OUTPUT_PATH", "stdout"),
+		},
+		Auth: AuthConfig{
+			Enabled:        getEnvAsBool("AUTH_ENABLED", false),
+			JWTSecret:      getEnv("JWT_SECRET", ""),
+			JWTExpiration:  getEnvAsDuration("JWT_EXPIRATION", 24*time.Hour),
+			AllowedIssuers: getEnvAsSlice("JWT_ALLOWED_ISSUERS", []string{}, ","),
 		},
 	}
 }
