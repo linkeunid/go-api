@@ -242,9 +242,27 @@ test:
 # Run tests with coverage
 test-coverage:
 	@echo "📊 Running tests with coverage..."
-	@go test -v -coverprofile=coverage.out ./...
-	@go tool cover -html=coverage.out -o coverage.html
-	@echo "✅ Coverage report generated at coverage.html"
+	@./scripts/test.sh --verbose
+
+# Run only API-related tests
+test-api:
+	@echo "🧪 Running API tests..."
+	@./scripts/test.sh --package "./internal/controller/..." --verbose
+
+# Run only service-related tests
+test-service:
+	@echo "🧪 Running service tests..."
+	@./scripts/test.sh --package "./internal/service/..." --verbose
+
+# Run only repository-related tests
+test-repository:
+	@echo "🧪 Running repository tests..."
+	@./scripts/test.sh --package "./internal/repository/..." --verbose
+
+# Run tests with race detection
+test-race:
+	@echo "🧪 Running tests with race detection..."
+	@./scripts/test.sh --race --verbose
 
 # Format code
 fmt:

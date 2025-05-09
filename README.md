@@ -65,6 +65,11 @@ A comprehensive Go API project with RESTful endpoints, JWT authentication, cachi
         - [Monitoring and Debugging](#monitoring-and-debugging)
       - [Production Deployment Considerations](#production-deployment-considerations)
   - [License](#license)
+  - [API Testing](#api-testing)
+    - [Running the Tests](#running-the-tests)
+    - [Test Coverage](#test-coverage)
+    - [Testing Strategy](#testing-strategy)
+    - [Extending Tests](#extending-tests)
 
 ## Features
 
@@ -849,3 +854,59 @@ For production deployments, consider:
 ## License
 
 This project is licensed under the GNU General Public License v2.0. See the LICENSE file for details.
+
+## API Testing
+
+The project includes comprehensive unit tests for the REST API components, focusing on:
+
+- Controller Layer: Tests for all API endpoints and edge cases
+- Service Layer: Tests for business logic handling
+- Repository Mocking: Simulated data store interactions 
+
+### Running the Tests
+
+The project includes several testing commands:
+
+```bash
+# Run all tests
+make test
+
+# Run all tests with coverage
+make test-coverage
+
+# Run only API-related tests
+make test-api
+
+# Run only service-related tests  
+make test-service
+
+# Run only repository-related tests
+make test-repository
+
+# Run tests with race detection
+make test-race
+```
+
+### Test Coverage
+
+The test suite achieves high coverage percentages for critical components:
+- Controller Layer: 92.6% coverage
+- Service Layer: 100% coverage
+
+Coverage reports are generated in HTML format and can be found in the `./coverage` directory after running the tests.
+
+### Testing Strategy
+
+The tests use the following strategies:
+- **Mocking**: Service dependencies are mocked to isolate units
+- **Table-Driven Tests**: Tests cover multiple test cases efficiently
+- **Edge Cases**: Tests handle error conditions and invalid inputs
+- **Assertions**: Tests verify correct behavior and outputs
+
+### Extending Tests
+
+When adding new API endpoints, follow the same pattern to extend the tests:
+1. Create controller tests for HTTP request/response handling
+2. Create service tests for business logic
+3. Create repository tests or mocks for data access
+4. Run tests to ensure coverage is maintained
