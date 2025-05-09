@@ -16,6 +16,9 @@ RUN go mod download
 # Copy source code
 COPY . .
 
+# Create config directory if it doesn't exist
+RUN mkdir -p /app/config
+
 # Build the application
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o api ./cmd/api
 
@@ -39,11 +42,14 @@ RUN addgroup -g 1000 app && \
 
 WORKDIR /app
 
+# Create config directory
+RUN mkdir -p /app/config
+
 # Copy the binary and health check script from builder
 COPY --from=builder /app/api /app/
 COPY --from=builder /app/healthcheck.sh /
 
-# Copy configuration files
+# Copy configuration files (if they exist)
 COPY --from=builder /app/config /app/config
 
 # Set user

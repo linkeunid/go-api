@@ -13,6 +13,13 @@ A comprehensive Go API project with RESTful endpoints, JWT authentication, cachi
     - [Running the API](#running-the-api)
       - [With Docker](#with-docker)
       - [Locally](#locally)
+    - [Command Aliases](#command-aliases)
+      - [Available Aliases](#available-aliases)
+      - [Commonly Used Aliases](#commonly-used-aliases)
+      - [Docker Aliases](#docker-aliases)
+      - [Database Aliases](#database-aliases)
+      - [Project Setup Aliases](#project-setup-aliases)
+      - [Examples](#examples)
     - [API Endpoints](#api-endpoints)
       - [Animals Resource](#animals-resource)
       - [Query Parameters](#query-parameters)
@@ -43,10 +50,20 @@ A comprehensive Go API project with RESTful endpoints, JWT authentication, cachi
   - [Development](#development)
     - [Swagger Documentation](#swagger-documentation)
     - [Development Workflow](#development-workflow)
+      - [Development Flow Diagram](#development-flow-diagram)
     - [Using as a Template](#using-as-a-template)
   - [Deployment](#deployment)
     - [Docker](#docker)
     - [Kubernetes](#kubernetes)
+      - [Minikube Deployment](#minikube-deployment)
+        - [Prerequisites](#prerequisites-1)
+        - [Setup Minikube](#setup-minikube)
+        - [Automated Deployment](#automated-deployment)
+        - [Manual Deployment](#manual-deployment)
+        - [Accessing the Application](#accessing-the-application)
+        - [Kubernetes Resources](#kubernetes-resources)
+        - [Monitoring and Debugging](#monitoring-and-debugging)
+      - [Production Deployment Considerations](#production-deployment-considerations)
   - [License](#license)
 
 ## Features
@@ -140,6 +157,90 @@ go build -o bin/api ./cmd/api
 ./bin/api
 ```
 
+### Command Aliases
+
+The project includes numerous command aliases to make development more efficient. These aliases are shortcuts for commonly used commands.
+
+#### Available Aliases
+
+View all available command aliases:
+
+```bash
+make help
+```
+
+#### Commonly Used Aliases
+
+| Alias | Full Command           | Description                            |
+| ----- | ---------------------- | -------------------------------------- |
+| `d`   | `dev`                  | Run development server with hot reload |
+| `r`   | `run`                  | Run the application                    |
+| `s`   | `swagger`              | Generate Swagger documentation         |
+| `su`  | `swagger-ui`           | Run Swagger UI server                  |
+| `t`   | `test`                 | Run tests                              |
+| `l`   | `lint`                 | Lint code                              |
+| `fr`  | `flush-redis`          | Flush Redis cache                      |
+| `gt`  | `generate-token`       | Generate JWT token                     |
+| `gtu` | `generate-token-user`  | Generate JWT token for specific user   |
+| `gta` | `generate-token-admin` | Generate admin JWT token               |
+
+#### Docker Aliases
+
+| Alias   | Full Command  | Description                         |
+| ------- | ------------- | ----------------------------------- |
+| `dup`   | `docker-up`   | Start all containers                |
+| `ddown` | `docker-down` | Stop all containers                 |
+| `ddb`   | `docker-db`   | Start only database containers      |
+| `fps`   | `fancy-ps`    | Show fancy container status details |
+
+#### Database Aliases
+
+| Alias | Full Command       | Description                   |
+| ----- | ------------------ | ----------------------------- |
+| `sd`  | `seed`             | Run all database seeders      |
+| `tr`  | `truncate`         | Truncate specific table       |
+| `um`  | `update-model-map` | Update model map for database |
+
+#### Project Setup Aliases
+
+| Alias     | Full Command | Description                        |
+| --------- | ------------ | ---------------------------------- |
+| `setup-s` | `setup`      | Setup project with new module name |
+| `setup-g` | `setup-git`  | Setup project with git remote      |
+| `setup-f` | `setup-full` | Full setup with new git repo       |
+
+#### Examples
+
+Start the development server:
+```bash
+make d
+```
+
+Run tests:
+```bash
+make t
+```
+
+Generate and view Swagger documentation:
+```bash
+make s
+make su
+```
+
+Work with Docker containers:
+```bash
+make dup    # Start all containers
+make fps    # Check container status
+make ddown  # Stop all containers
+```
+
+Generate a JWT token for testing:
+```bash
+make gt     # Standard token
+make gta    # Admin token
+make gtu id=123  # Token for specific user ID
+```
+
 ### API Endpoints
 
 #### Animals Resource
@@ -218,6 +319,8 @@ make gta
 make generate-token-admin
 
 # Generate a token for a specific user ID
+make gtu id=123
+# or
 make generate-token-user id=123
 
 # Force token generation in any environment (for emergencies)
@@ -284,9 +387,31 @@ This variable contains a comma-separated list of trusted token issuers:
 Protected endpoints require a JWT token in the Authorization header:
 
 ```bash
+# Access protected endpoint
 curl -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
-  http://localhost:4445/api/v1/protected-endpoint
+  http://localhost:8080/api/v1/protected/
+
+# Access admin-only endpoint
+curl -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  http://localhost:8080/api/v1/protected/admin/
 ```
+
+#### Available API Endpoints
+
+| Endpoint                     | Auth Required | Role Required | Description                       |
+| ---------------------------- | ------------- | ------------- | --------------------------------- |
+| GET /health                  | No            | None          | Health check endpoint             |
+| GET /swagger/                | No            | None          | Swagger UI (dev mode only)        |
+| GET /api/v1/public/          | No            | None          | Public API endpoint               |
+| GET /api/v1/protected/       | Yes           | Any           | Protected endpoint with user info |
+| GET /api/v1/protected/admin/ | Yes           | Admin         | Admin-only protected endpoint     |
+| GET /api/v1/animals          | No*           | None          | List all animals                  |
+| GET /api/v1/animals/:id      | No*           | None          | Get animal by ID                  |
+| POST /api/v1/animals         | No*           | None          | Create a new animal               |
+| PUT /api/v1/animals/:id      | No*           | None          | Update an animal                  |
+| DELETE /api/v1/animals/:id   | No*           | None          | Delete an animal                  |
+
+*Note: Animal endpoints may require authentication depending on your configuration.
 
 #### Role-Based Access Control
 
@@ -502,6 +627,57 @@ The project follows a streamlined development workflow:
 3. **Development Cycle**: Code, test, document
 4. **Deployment**: Build and deploy via Docker or Kubernetes
 
+#### Development Flow Diagram
+
+```mermaid
+graph TD
+    subgraph "Setup"
+        A[Clone Repository] --> B[Configure Environment]
+        B --> C[Initialize Project with Aliases]
+        C -->|make init / make i| D[Generate Swagger Docs]
+    end
+    
+    subgraph "Database Setup"
+        D --> E[Run Migrations]
+        E -->|make migrate| F[Seed Database]
+        F -->|make seed / make sd| G[Ready for Development]
+    end
+    
+    subgraph "Development Cycle"
+        G --> H[Code Changes]
+        H --> I[Run Development Server]
+        I -->|make dev / make d| J[Test API]
+        J --> K[Generate & View Documentation]
+        K -->|make swagger / make s| K2[View Swagger UI]
+        K2 -->|make swagger-ui / make su| H
+    end
+    
+    subgraph "Testing"
+        H --> L1[Run Tests]
+        L1 -->|make test / make t| L2[Format Code]
+        L2 -->|make fmt| L3[Lint Code]
+        L3 -->|make lint / make l| H
+    end
+    
+    subgraph "Deployment"
+        H --> M1[Build]
+        M1 -->|make build| M2[Deployment Options]
+        M2 --> N[Docker Container]
+        N -->|make docker-up / make dup| O[Production]
+        M2 --> P[Kubernetes]
+        P -->|k8s/deploy-minikube.sh| O
+    end
+    
+    subgraph "Helper Commands"
+        Q1[Generate JWT Token] -->|make gt, make gtu, make gta| J
+        Q2[Database Operations] -->|make um, make sm| J
+        Q3[Monitor Containers] -->|make fps, make docker-logs / make dlogs| J
+        Q4[Flush Cache] -->|make flush-redis / make fr| J
+    end
+```
+
+This diagram illustrates the development workflow from initial setup through to deployment, highlighting the key commands and their aliases used at each stage.
+
 ### Using as a Template
 
 This project can be used as a template for new Go APIs:
@@ -513,9 +689,21 @@ cd your-project-name
 
 # Basic setup - rename module
 make setup module=github.com/yourusername/your-project
+# or using alias
+make setup-s module=github.com/yourusername/your-project
+
+# Setup with Git remote
+make setup-git module=github.com/yourusername/your-project \
+  remote=git@github.com:yourusername/your-project.git
+# or using alias
+make setup-g module=github.com/yourusername/your-project \
+  remote=git@github.com:yourusername/your-project.git
 
 # Full setup - new Git repo and remote
 make setup-full module=github.com/yourusername/your-project \
+  remote=git@github.com:yourusername/your-project.git
+# or using alias
+make setup-f module=github.com/yourusername/your-project \
   remote=git@github.com:yourusername/your-project.git
 
 # Update dependencies
@@ -526,28 +714,138 @@ go mod tidy
 
 ### Docker
 
-Run with Docker Compose:
-
 ```bash
-# Start all services
-docker-compose up -d
+# Build the Docker image
+docker build -t go-api:latest .
 
-# View logs
-docker-compose logs -f api
-
-# Stop all services
-docker-compose down
+# Run the container
+docker run -p 8080:8080 go-api:latest
 ```
 
 ### Kubernetes
 
-Deploy to a Kubernetes cluster:
+This project includes a complete Kubernetes deployment setup for deploying to Minikube or a production Kubernetes cluster.
+
+#### Minikube Deployment
+
+##### Prerequisites
+
+- [Minikube](https://minikube.sigs.k8s.io/docs/start/)
+- [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
+- [Docker](https://docs.docker.com/get-docker/)
+
+##### Setup Minikube
+
+1. Start Minikube:
 
 ```bash
-# Apply configuration
+minikube start
+```
+
+2. Enable the Ingress addon:
+
+```bash
+minikube addons enable ingress
+```
+
+##### Automated Deployment
+
+Use the provided deployment script to deploy the application to Minikube:
+
+```bash
+# Deploy the application
+./k8s/deploy-minikube.sh
+
+# Clean up resources
+./k8s/cleanup-minikube.sh
+```
+
+##### Manual Deployment
+
+1. Build and load the Docker image:
+
+```bash
+# Build the image
+docker build -t go-api:latest .
+
+# Load the image into Minikube
+minikube image load go-api:latest
+```
+
+2. Apply Kubernetes manifests:
+
+```bash
+# Apply all manifests at once
+kubectl apply -k k8s/
+
+# Or apply each manifest separately
+kubectl apply -f k8s/configmap.yaml
+kubectl apply -f k8s/secrets.yaml
+kubectl apply -f k8s/mysql.yaml
+kubectl apply -f k8s/redis.yaml
 kubectl apply -f k8s/deployment.yaml
 ```
 
+##### Accessing the Application
+
+1. Get the Minikube IP:
+
+```bash
+minikube ip
+```
+
+2. Add an entry to your hosts file:
+
+```
+# /etc/hosts (Linux/Mac) or C:\Windows\System32\drivers\etc\hosts (Windows)
+<minikube-ip> go-api.local
+```
+
+3. Access the application:
+
+```
+http://go-api.local
+```
+
+##### Kubernetes Resources
+
+The Kubernetes deployment includes:
+
+- **API Deployment** - The main Go API application
+- **MySQL Database** - Persistent MySQL instance
+- **Redis** - For caching and session management
+- **ConfigMap** - For application configuration
+- **Secrets** - For sensitive data
+- **Services** - For internal and external networking
+- **Ingress** - For external access
+
+##### Monitoring and Debugging
+
+```bash
+# Check pod status
+kubectl get pods
+
+# View pod logs
+kubectl logs <pod-name>
+
+# Execute commands in a pod
+kubectl exec -it <pod-name> -- /bin/sh
+
+# Port forwarding for local debugging
+kubectl port-forward service/go-api 8080:80
+```
+
+#### Production Deployment Considerations
+
+For production deployments, consider:
+
+1. Setting up production secrets management (e.g., Vault or Kubernetes Secrets Store CSI Driver)
+2. Configuring proper resource limits and requests
+3. Implementing horizontal pod autoscaling
+4. Setting up proper database backups and replication
+5. Configuring a proper Ingress controller with TLS
+6. Implementing proper monitoring and alerting
+
 ## License
 
-This project is licensed under the GNU General Public License v2.0. See the LICENSE file for details. 
+This project is licensed under the GNU General Public License v2.0. See the LICENSE file for details.

@@ -5,7 +5,7 @@ metadata:
   labels:
     app: go-api
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: go-api
@@ -19,10 +19,29 @@ spec:
       labels:
         app: go-api
     spec:
+      initContainers:
+        # Wait for MySQL to be ready
+        - name: wait-for-mysql
+          image: busybox:1.28
+          command:
+            [
+              "sh",
+              "-c",
+              "until nc -z mysql 3306; do echo waiting for mysql; sleep 2; done;",
+            ]
+        # Wait for Redis to be ready
+        - name: wait-for-redis
+          image: busybox:1.28
+          command:
+            [
+              "sh",
+              "-c",
+              "until nc -z redis 6380; do echo waiting for redis; sleep 2; done;",
+            ]
       containers:
         - name: api
-          image: ${API_IMAGE:-go-api:latest}
-          imagePullPolicy: Always
+          image: go-api:latest
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
               name: http
@@ -80,7 +99,7 @@ spec:
             httpGet:
               path: /health
               port: http
-            initialDelaySeconds: 30
+            initialDelaySeconds: 60
             periodSeconds: 10
             timeoutSeconds: 5
             failureThreshold: 3
@@ -88,7 +107,7 @@ spec:
             httpGet:
               path: /health
               port: http
-            initialDelaySeconds: 5
+            initialDelaySeconds: 30
             periodSeconds: 5
             timeoutSeconds: 3
             failureThreshold: 2
@@ -123,11 +142,10 @@ metadata:
   name: go-api-ingress
   annotations:
     kubernetes.io/ingress.class: "nginx"
-    nginx.ingress.kubernetes.io/ssl-redirect: "true"
-    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
 spec:
   rules:
-    - host: api.linkeun.id
+    - host: go-api.local
       http:
         paths:
           - path: /
@@ -137,7 +155,3 @@ spec:
                 name: go-api
                 port:
                   name: http
-  tls:
-    - hosts:
-        - api.linkeun.id
-      secretName: linkeun-tls-secret

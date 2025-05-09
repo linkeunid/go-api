@@ -1,87 +1,123 @@
 .PHONY: swagger swagger-ui dev test lint fmt help
 
+# Helper function to print colorful messages
+# Usage: $(call print_colorful, emoji, text, color, is_bold)
+# Example: $(call print_colorful, 🚀, Building application, green, true)
+define print_colorful
+	printf "\033[$(if $(4),1;)$(if $(3),$(3),32)m$(1) $(2)\033[0m\n"
+endef
+
+# Color codes for echo statements
+GREEN := 32
+YELLOW := 33
+BLUE := 34
+CYAN := 36
+MAGENTA := 35
+RED := 31
+
+# Display fancy header for commands that deserve special attention
+define fancy_header
+	@printf "\n\033[1;$(1)m════════════════════════════════════════════════════════════════\033[0m\n"
+	@printf "\033[1;$(1)m 🌟 $(2)\033[0m\n"
+	@printf "\033[1;$(1)m════════════════════════════════════════════════════════════════\033[0m\n\n"
+endef
+
 # Default target - show help
 help:
-	@echo "✨ Linkeun Go API - Available commands:"
-	@echo "  make build          - Build the application"
-	@echo "  make run            - Run the application"
-	@echo "  make dev            - Run development server with hot reload"
-	@echo "  make swagger        - Generate Swagger documentation"
-	@echo "  make swagger-ui     - Run Swagger UI server"
-	@echo "  make init           - Initialize the project"
-	@echo "  make clean          - Clean build artifacts"
-	@echo "  make test           - Run tests"
-	@echo "  make test-coverage  - Run tests with coverage report"
-	@echo "  make fmt            - Format code"
-	@echo "  make lint           - Lint code"
-	@echo "  make mocks          - Generate mocks for testing"
-	@echo ""
-	@echo "JWT Authentication:"
-	@echo "  make generate-token      - Generate JWT token with default settings"
-	@echo "  make generate-token-user id=123 - Generate JWT token for specific user ID"
-	@echo "  make generate-token-admin - Generate JWT token with admin role"
-	@echo "  make generate-token-force - Force token generation (works in any environment)"
-	@echo ""
-	@echo "Database migrations:"
-	@echo "  make migrate        - Run database migrations"
-	@echo "  make migrate-create name=NAME - Create a new migration"
-	@echo "  make migrate-from-model model=NAME - Create a migration from a model"
-	@echo "  make migrate-list-models - List available models for migrations"
-	@echo "  make migrate-down   - Roll back the last migration"
-	@echo "  make migrate-status - Show current migration status"
-	@echo "  make migrate-reset  - Reset all migrations"
-	@echo ""
-	@echo "Database seeders:"
-	@echo "  make seed           - Run all database seeders"
-	@echo "  make seed-animal    - Run only animal seeder"
-	@echo "  make seed-flower    - Run only flower seeder"
-	@echo "  make seed-count     - Run seeders with custom count (e.g., make seed-count count=100)"
-	@echo ""
-	@echo "Database operations:"
-	@echo "  make truncate model=NAME - Truncate specific table with confirmation"
-	@echo "  make truncate-all   - Truncate all tables with confirmation"
-	@echo "  make update-model-map - Update model map for database operations"
-	@echo "  make sync-model-map - Sync model map by adding new models and removing deleted ones"
-	@echo "  make clean-model-map - Remove models from the map that no longer exist"
-	@echo ""
-	@echo "  make env-info       - Show environment variables used by the application"
-	@echo ""
-	@echo "Docker commands:"
-	@echo "  make docker-db      - Start only database containers (MySQL and Redis)"
-	@echo "  make docker-up      - Start all containers"
-	@echo "  make docker-down    - Stop all containers"
-	@echo "  make docker-rebuild - Rebuild and restart all containers"
-	@echo "  make docker-logs    - View logs from all containers"
-	@echo "  make docker-ps      - List running containers"
-	@echo "  make fancy-ps       - Show fancy container status with colors and details 🌈"
-	@echo "  make docker-clean   - Remove all containers, volumes, and images"
-	@echo ""
-	@echo "Project Template Setup:"
-	@echo "  make setup module=MODULE_NAME - Setup project with new module name"
-	@echo "  make setup-git remote=GIT_URL - Setup project with new module name and git remote"
-	@echo "  make setup-full module=MODULE_NAME remote=GIT_URL - Full setup with new git repo"
-	@echo ""
-	@echo "Aliases:"
-	@echo "  make s              - Generate Swagger documentation"
-	@echo "  make su             - Run Swagger UI server"
-	@echo "  make r              - Run the application"
-	@echo "  make d              - Run development server with hot reload"
-	@echo "  make t              - Run tests"
-	@echo "  make l              - Lint code"
-	@echo "  make sd             - Run all database seeders"
-	@echo "  make tr             - Truncate specific table with confirmation"
-	@echo "  make tra            - Truncate all tables with confirmation"
-	@echo "  make um             - Update model map for database operations"
-	@echo "  make cm             - Clean model map (removing non-existent models)"
-	@echo "  make sm             - Sync model map (adding new models and removing deleted ones)"
-	@echo "  make gt             - Generate JWT token with default settings"
-	@echo "  make gta            - Generate JWT token with admin role"
-	@echo "  make ddb            - Start database containers"
-	@echo "  make dup            - Start all containers"
-	@echo "  make ddown          - Stop all containers"
-	@echo "  make fps            - Show fancy container status"
-	@echo "  make ei             - Show environment info"
-	@echo "  make gtf            - Generate forced token"
+	$(call fancy_header,$(MAGENTA),Linkeun Go API - Command Reference)
+	@printf "\033[1;36m✨ Build & Run\033[0m\n"
+	@printf "  \033[1mmake dev\033[0m            - 🔄 Run development server with hot reload\n"
+	@printf "  \033[1mmake run\033[0m            - 🚀 Run the application\n"
+	@printf "  \033[1mmake build\033[0m          - 🔨 Build the application\n"
+	@printf "\n"
+	@printf "\033[1;36m🐳 Docker Commands\033[0m\n"
+	@printf "  \033[1mmake docker-up\033[0m      - 🚀 Start all containers\n"
+	@printf "  \033[1mmake docker-down\033[0m    - 🛑 Stop all containers\n"
+	@printf "  \033[1mmake docker-db\033[0m      - 🗃️ Start only database containers (MySQL and Redis)\n"
+	@printf "  \033[1mmake docker-rebuild\033[0m - 🔄 Rebuild and restart all containers\n"
+	@printf "  \033[1mmake fancy-ps\033[0m       - 🌈 Show fancy container status with colors and details\n"
+	@printf "  \033[1mmake docker-logs\033[0m    - 📋 View logs from all containers\n"
+	@printf "  \033[1mmake docker-ps\033[0m      - 📊 List running containers\n"
+	@printf "  \033[1mmake docker-clean\033[0m   - 🧹 Remove all containers, volumes, and images\n"
+	@printf "\n"
+	@printf "\033[1;36m🗃️ Database Migrations\033[0m\n"
+	@printf "  \033[1mmake migrate\033[0m        - 📊 Run database migrations\n"
+	@printf "  \033[1mmake migrate-status\033[0m - 📊 Show current migration status\n"
+	@printf "  \033[1mmake migrate-down\033[0m   - ⏮️ Roll back the last migration\n"
+	@printf "  \033[1mmake migrate-create name=NAME\033[0m - 📝 Create a new migration\n"
+	@printf "  \033[1mmake migrate-from-model model=NAME\033[0m - 🔄 Create a migration from a model\n"
+	@printf "  \033[1mmake migrate-list-models\033[0m - 📋 List available models for migrations\n"
+	@printf "  \033[1mmake migrate-reset\033[0m  - 🔄 Reset all migrations\n"
+	@printf "\n"
+	@printf "\033[1;36m🌱 Database Seeders\033[0m\n"
+	@printf "  \033[1mmake seed\033[0m           - 🌱 Run all database seeders\n"
+	@printf "  \033[1mmake seed-count\033[0m     - 🔢 Run seeders with custom count (e.g., make seed-count count=100)\n"
+	@printf "  \033[1mmake seed-animal\033[0m    - 🐾 Run only animal seeder\n"
+	@printf "  \033[1mmake seed-flower\033[0m    - 🌸 Run only flower seeder\n"
+	@printf "\n"
+	@printf "\033[1;36m💾 Database Operations\033[0m\n"
+	@printf "  \033[1mmake update-model-map\033[0m - 🔄 Update model map for database operations\n"
+	@printf "  \033[1mmake sync-model-map\033[0m - 🔄 Sync model map by adding new models and removing deleted ones\n"
+	@printf "  \033[1mmake clean-model-map\033[0m - 🧹 Remove models from the map that no longer exist\n"
+	@printf "  \033[1mmake truncate model=NAME\033[0m - 🗑️ Truncate specific table with confirmation\n"
+	@printf "  \033[1mmake truncate-all\033[0m   - 🧹 Truncate all tables with confirmation\n"
+	@printf "\n"
+	@printf "\033[1;36m🧪 Testing & Quality\033[0m\n"
+	@printf "  \033[1mmake test\033[0m           - 🧪 Run tests\n"
+	@printf "  \033[1mmake fmt\033[0m            - ✨ Format code\n"
+	@printf "  \033[1mmake lint\033[0m           - 🔍 Lint code\n"
+	@printf "  \033[1mmake test-coverage\033[0m  - 📊 Run tests with coverage report\n"
+	@printf "  \033[1mmake mocks\033[0m          - 🧩 Generate mocks for testing\n"
+	@printf "\n"
+	@printf "\033[1;36m📚 Documentation\033[0m\n"
+	@printf "  \033[1mmake swagger\033[0m        - 📝 Generate Swagger documentation\n"
+	@printf "  \033[1mmake swagger-ui\033[0m     - 🌐 Run Swagger UI server\n"
+	@printf "\n"
+	@printf "\033[1;36m🔐 JWT Authentication\033[0m\n"
+	@printf "  \033[1mmake generate-token\033[0m      - 🔑 Generate JWT token with default settings\n"
+	@printf "  \033[1mmake generate-token-user id=123\033[0m - 👤 Generate JWT token for specific user ID\n"
+	@printf "  \033[1mmake generate-token-admin\033[0m - 👑 Generate JWT token with admin role\n"
+	@printf "  \033[1mmake generate-token-force\033[0m - ⚡ Force token generation (works in any environment)\n"
+	@printf "\n"
+	@printf "\033[1;36m🔧 Project Management\033[0m\n"
+	@printf "  \033[1mmake init\033[0m           - 🔧 Initialize the project\n"
+	@printf "  \033[1mmake env-info\033[0m       - ℹ️ Show environment variables used by the application\n"
+	@printf "  \033[1mmake clean\033[0m          - 🧹 Clean build artifacts\n"
+	@printf "  \033[1mmake flush-redis\033[0m    - 🧹 Explicitly flush Redis cache\n"
+	@printf "\n"
+	@printf "\033[1;36m🔧 Project Template Setup\033[0m\n"
+	@printf "  \033[1mmake setup module=MODULE_NAME\033[0m - 🛠️ Setup project with new module name\n"
+	@printf "  \033[1mmake setup-git remote=GIT_URL\033[0m - 🔄 Setup project with new module name and git remote\n"
+	@printf "  \033[1mmake setup-full module=MODULE_NAME remote=GIT_URL\033[0m - 🚀 Full setup with new git repo\n"
+	@printf "\n"
+	@printf "\033[1;36m⚡ Command Aliases\033[0m\n"
+	@printf "  \033[1mmake d\033[0m              - ↩️ Alias for 'dev'\n"
+	@printf "  \033[1mmake r\033[0m              - ↩️ Alias for 'run'\n"
+	@printf "  \033[1mmake s\033[0m              - ↩️ Alias for 'swagger'\n"
+	@printf "  \033[1mmake su\033[0m             - ↩️ Alias for 'swagger-ui'\n"
+	@printf "  \033[1mmake t\033[0m              - ↩️ Alias for 'test'\n"
+	@printf "  \033[1mmake l\033[0m              - ↩️ Alias for 'lint'\n"
+	@printf "  \033[1mmake sd\033[0m             - ↩️ Alias for 'seed'\n"
+	@printf "  \033[1mmake tr\033[0m             - ↩️ Alias for 'truncate'\n"
+	@printf "  \033[1mmake tra\033[0m            - ↩️ Alias for 'truncate-all'\n"
+	@printf "  \033[1mmake um\033[0m             - ↩️ Alias for 'update-model-map'\n"
+	@printf "  \033[1mmake cm\033[0m             - ↩️ Alias for 'clean-model-map'\n"
+	@printf "  \033[1mmake sm\033[0m             - ↩️ Alias for 'sync-model-map'\n"
+	@printf "  \033[1mmake fr\033[0m             - ↩️ Alias for 'flush-redis'\n"
+	@printf "  \033[1mmake gt\033[0m             - ↩️ Alias for 'generate-token'\n"
+	@printf "  \033[1mmake gtu\033[0m            - ↩️ Alias for 'generate-token-user'\n"
+	@printf "  \033[1mmake gta\033[0m            - ↩️ Alias for 'generate-token-admin'\n"
+	@printf "  \033[1mmake gtf\033[0m            - ↩️ Alias for 'generate-token-force'\n"
+	@printf "  \033[1mmake setup-s\033[0m        - ↩️ Alias for 'setup'\n"
+	@printf "  \033[1mmake setup-g\033[0m        - ↩️ Alias for 'setup-git'\n"
+	@printf "  \033[1mmake setup-f\033[0m        - ↩️ Alias for 'setup-full'\n"
+	@printf "  \033[1mmake ddb\033[0m            - ↩️ Alias for 'docker-db'\n"
+	@printf "  \033[1mmake dup\033[0m            - ↩️ Alias for 'docker-up'\n"
+	@printf "  \033[1mmake ddown\033[0m          - ↩️ Alias for 'docker-down'\n"
+	@printf "  \033[1mmake dps\033[0m            - ↩️ Alias for 'docker-ps'\n"
+	@printf "  \033[1mmake dlogs\033[0m          - ↩️ Alias for 'docker-logs'\n"
+	@printf "  \033[1mmake fps\033[0m            - ↩️ Alias for 'fancy-ps'\n"
+	@printf "  \033[1mmake ei\033[0m             - ↩️ Alias for 'env-info'\n"
 
 # Helper function to get env variable with default value
 # Usage: $(call get_env,VARIABLE_NAME,DEFAULT_VALUE)
@@ -92,111 +128,111 @@ endef
 # Helper function to flush Redis cache
 # Usage: $(call flush_redis_cache)
 define flush_redis_cache
-	@echo "🧹 Attempting to flush Redis cache..."
+	@printf "\033[1;$(YELLOW)m🧹 Attempting to flush Redis cache...\033[0m\n"
 	@if command -v redis-cli > /dev/null; then \
 		REDIS_HOST=$$(grep -E "^REDIS_HOST=" .env 2>/dev/null | cut -d= -f2 || echo "localhost"); \
 		REDIS_PORT=$$(grep -E "^REDIS_PORT=" .env 2>/dev/null | cut -d= -f2 || echo "6380"); \
 		REDIS_PASSWORD=$$(grep -E "^REDIS_PASSWORD=" .env 2>/dev/null | cut -d= -f2 || echo ""); \
-		echo "🔗 Connecting to Redis at $$REDIS_HOST:$$REDIS_PORT"; \
+		printf "\033[$(BLUE)m🔗 Connecting to Redis at $$REDIS_HOST:$$REDIS_PORT\033[0m\n"; \
 		if [ -n "$$REDIS_PASSWORD" ]; then \
-			echo "🔑 Using password from .env file"; \
+			printf "\033[$(CYAN)m🔑 Using password from .env file\033[0m\n"; \
 			AUTH_RESULT=$$(redis-cli -h $$REDIS_HOST -p $$REDIS_PORT AUTH "$$REDIS_PASSWORD" 2>&1); \
 			if echo "$$AUTH_RESULT" | grep -q "OK"; then \
-				echo "✅ Authentication successful"; \
+				printf "\033[$(GREEN)m✅ Authentication successful\033[0m\n"; \
 				FLUSH_RESULT=$$(redis-cli -h $$REDIS_HOST -p $$REDIS_PORT -a "$$REDIS_PASSWORD" FLUSHDB 2>&1); \
 				if echo "$$FLUSH_RESULT" | grep -q "OK"; then \
-					echo "✅ Redis cache flushed successfully"; \
+					printf "\033[1;$(GREEN)m✅ Redis cache flushed successfully\033[0m\n"; \
 				else \
-					echo "❌ Flush failed: $$FLUSH_RESULT"; \
+					printf "\033[1;$(RED)m❌ Flush failed: $$FLUSH_RESULT\033[0m\n"; \
 				fi; \
 			else \
-				echo "⚠️ Authentication failed: $$AUTH_RESULT"; \
-				echo "🔑 Trying with default fallback method..."; \
+				printf "\033[1;$(YELLOW)m⚠️ Authentication failed: $$AUTH_RESULT\033[0m\n"; \
+				printf "\033[$(YELLOW)m🔑 Trying with default fallback method...\033[0m\n"; \
 				FLUSH_RESULT=$$(redis-cli -h $$REDIS_HOST -p $$REDIS_PORT -a "redis" FLUSHDB 2>&1); \
 				if echo "$$FLUSH_RESULT" | grep -q "OK"; then \
-					echo "✅ Redis cache flushed successfully with fallback"; \
+					printf "\033[1;$(GREEN)m✅ Redis cache flushed successfully with fallback\033[0m\n"; \
 				else \
-					echo "❌ All authentication methods failed"; \
-					echo "   Please verify Redis is running and credentials are correct"; \
-					echo "   Redis error: $$FLUSH_RESULT"; \
+					printf "\033[1;$(RED)m❌ All authentication methods failed\033[0m\n"; \
+					printf "\033[$(RED)m   Please verify Redis is running and credentials are correct\033[0m\n"; \
+					printf "\033[$(RED)m   Redis error: $$FLUSH_RESULT\033[0m\n"; \
 				fi; \
 			fi; \
 		else \
-			echo "🔑 No password found in .env file, trying without authentication..."; \
+			printf "\033[$(YELLOW)m🔑 No password found in .env file, trying without authentication...\033[0m\n"; \
 			FLUSH_RESULT=$$(redis-cli -h $$REDIS_HOST -p $$REDIS_PORT FLUSHDB 2>&1); \
 			if echo "$$FLUSH_RESULT" | grep -q "OK"; then \
-				echo "✅ Redis cache flushed successfully"; \
+				printf "\033[1;$(GREEN)m✅ Redis cache flushed successfully\033[0m\n"; \
 			elif echo "$$FLUSH_RESULT" | grep -q "NOAUTH"; then \
-				echo "🔑 Authentication required, trying with default 'redis' password..."; \
+				printf "\033[$(YELLOW)m🔑 Authentication required, trying with default 'redis' password...\033[0m\n"; \
 				FALLBACK_RESULT=$$(redis-cli -h $$REDIS_HOST -p $$REDIS_PORT -a "redis" FLUSHDB 2>&1); \
 				if echo "$$FALLBACK_RESULT" | grep -q "OK"; then \
-					echo "✅ Redis cache flushed successfully with default password"; \
+					printf "\033[1;$(GREEN)m✅ Redis cache flushed successfully with default password\033[0m\n"; \
 				else \
-					echo "❌ Could not authenticate to Redis"; \
-					echo "   Please add the correct password to your .env file"; \
-					echo "   Redis error: $$FALLBACK_RESULT"; \
+					printf "\033[1;$(RED)m❌ Could not authenticate to Redis\033[0m\n"; \
+					printf "\033[$(RED)m   Please add the correct password to your .env file\033[0m\n"; \
+					printf "\033[$(RED)m   Redis error: $$FALLBACK_RESULT\033[0m\n"; \
 				fi; \
 			else \
-				echo "❌ Could not connect to Redis: $$FLUSH_RESULT"; \
+				printf "\033[1;$(RED)m❌ Could not connect to Redis: $$FLUSH_RESULT\033[0m\n"; \
 			fi; \
 		fi; \
 	else \
-		echo "⚠️ redis-cli not found. Skipping cache flush."; \
+		printf "\033[1;$(YELLOW)m⚠️ redis-cli not found. Skipping cache flush.\033[0m\n"; \
 	fi
 endef
 
 # Build the application
 build:
-	@echo "🔨 Building application..."
+	@printf "\033[1;$(BLUE)m🔨 Building application...\033[0m\n"
 	@go build -o bin/api ./cmd/api
-	@echo "✅ Build complete: ./bin/api"
+	@printf "\033[$(GREEN)m✅ Build complete: ./bin/api\033[0m\n"
 
 # Run the application
 run:
-	@echo "🚀 Starting application..."
+	@printf "\033[1;$(GREEN)m🚀 Starting application...\033[0m\n"
 	@go run ./cmd/api
 
 # Development mode with hot reload (alias)
 dev:
-	@echo "🔄 Starting development server with hot reload..."
+	@printf "\033[1;$(CYAN)m🔄 Starting development server with hot reload...\033[0m\n"
 	$(call flush_redis_cache)
 	@if command -v air > /dev/null; then \
 		air -c .air.toml; \
 	else \
-		echo "⚠️ Air not found. Installing..."; \
+		printf "\033[1;$(YELLOW)m⚠️ Air not found. Installing...\033[0m\n"; \
 		go install github.com/cosmtrek/air@latest; \
 		air -c .air.toml; \
 	fi
 
 # Generate Swagger documentation
 swagger:
-	@echo "📝 Generating Swagger documentation..."
+	@printf "\033[1;$(BLUE)m📝 Generating Swagger documentation...\033[0m\n"
 	@./scripts/swagger.sh
-	@echo "✅ Swagger documentation generated"
-	@echo "ℹ️ Note: You may see warnings about 'no Go files in root directory' - this is normal and can be ignored"
+	@printf "\033[$(GREEN)m✅ Swagger documentation generated\033[0m\n"
+	@printf "\033[$(YELLOW)mℹ️ Note: You may see warnings about 'no Go files in root directory' - this is normal and can be ignored\033[0m\n"
 
 # Run Swagger UI
 swagger-ui: swagger
-	@echo "🌐 Starting Swagger UI server..."
+	@printf "\033[1;$(MAGENTA)m🌐 Starting Swagger UI server...\033[0m\n"
 	@./scripts/swagger-ui.sh
 
 # Install Swagger tools
 swagger-tools:
-	@echo "⚙️ Installing Swagger tools..."
+	@printf "\033[1;$(BLUE)m⚙️ Installing Swagger tools...\033[0m\n"
 	@go install github.com/swaggo/swag/cmd/swag@latest
-	@echo "✅ Swagger tools installed"
+	@printf "\033[$(GREEN)m✅ Swagger tools installed\033[0m\n"
 
 # Initialize the project (download dependencies, generate swagger, etc.)
 init: swagger-tools swagger update-model-map
-	@echo "🔧 Initializing project..."
-	@echo "✅ Project initialized successfully"
+	@printf "\033[1;$(BLUE)m🔧 Initializing project...\033[0m\n"
+	@printf "\033[1;$(GREEN)m✅ Project initialized successfully\033[0m\n"
 
 # Clean the project
 clean:
-	@echo "🧹 Cleaning project..."
+	@printf "\033[1;$(YELLOW)m🧹 Cleaning project...\033[0m\n"
 	@rm -rf bin/
 	@rm -rf internal/docs/swaggerdocs/
-	@echo "✅ Project cleaned"
+	@printf "\033[$(GREEN)m✅ Project cleaned\033[0m\n"
 
 # Run tests
 test:
@@ -469,8 +505,14 @@ cm: clean-model-map
 sm: sync-model-map
 fr: flush-redis
 gt: generate-token
+gtu: generate-token-user
 gta: generate-token-admin
 gtf: generate-token-force
+
+# Project Template Setup aliases
+setup-s: setup
+setup-g: setup-git
+setup-f: setup-full
 
 # Docker commands
 docker-db: ## Start only database containers (MySQL and Redis)

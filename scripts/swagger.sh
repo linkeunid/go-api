@@ -1,9 +1,19 @@
 #!/bin/bash
 set -e
 
+# Colors for output
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+MAGENTA='\033[0;35m'
+BOLD='\033[1m'
+NC='\033[0m' # No Color
+
 # Load environment variables from .env if it exists
 if [ -f .env ]; then
   export $(grep -v '^#' .env | xargs)
+  echo -e "${CYAN}🔍 Found .env file, using environment variables...${NC}"
 fi
 
 # Default API settings if not provided
@@ -17,12 +27,14 @@ else
   SWAGGER_API_HOST="$API_HOST"
 fi
 
-echo "Generating Swagger docs for API at $SWAGGER_API_HOST:$API_PORT..."
+echo -e "${MAGENTA}📚 Generating Swagger docs for API at ${BOLD}$SWAGGER_API_HOST:$API_PORT${NC}..."
 
 # Create directories if they don't exist
 mkdir -p internal/docs/swaggerdocs
+echo -e "${BLUE}📁 Created docs directories${NC}"
 
 # Replace the host annotation in swagger.go
+echo -e "${YELLOW}🔄 Updating API host in swagger annotations...${NC}"
 if [[ "$OSTYPE" == "darwin"* ]]; then
   # Mac OSX
   sed -i '' "s|// @host .*|// @host $SWAGGER_API_HOST:$API_PORT|" internal/docs/swagger.go
@@ -32,6 +44,8 @@ else
 fi
 
 # Generate Swagger docs directly from the swagger.go file that contains the annotations
+echo -e "${BLUE}⚙️ Running swag init...${NC}"
 swag init -g internal/docs/swagger.go --output ./internal/docs/swaggerdocs
 
-echo "✅ Swagger docs generated at ./internal/docs/swaggerdocs" 
+echo -e "${GREEN}✅ Swagger docs generated at ${BOLD}./internal/docs/swaggerdocs${NC}"
+echo -e "${CYAN}💡 Run ${BOLD}./scripts/swagger-ui.sh${NC} ${CYAN}to start Swagger UI server${NC}" 
