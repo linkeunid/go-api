@@ -15,19 +15,76 @@ LOG_INTERVAL=0.1  # seconds
 MAX_SIZE_MB=1     # small size for testing
 BACKUP_COUNT=3
 MAX_AGE_DAYS=1
+PORT=8080
 
 # API process ID
 API_PID=""
+
+# Check if port is already in use
+check_port() {
+    local pid=$(lsof -t -i:$PORT 2>/dev/null)
+    if [ -n "$pid" ]; then
+        local process_info=$(ps -p $pid -o comm= 2>/dev/null)
+        echo -e "${YELLOW}⚠️ Port $PORT is already in use by process $pid ($process_info)${NC}"
+        echo -e "${YELLOW}Options:${NC}"
+        echo -e "  ${YELLOW}1) Kill the process and continue${NC}"
+        echo -e "  ${YELLOW}2) Exit${NC}"
+        read -p "Enter your choice (1/2): " choice
+
+        case "$choice" in
+            1)
+                echo -e "${YELLOW}Killing process $pid...${NC}"
+                kill -9 $pid
+                sleep 1
+                if lsof -t -i:$PORT &>/dev/null; then
+                    echo -e "${RED}❌ Failed to kill process. Please stop it manually and try again.${NC}"
+                    cleanup
+                else
+                    echo -e "${GREEN}✅ Process killed successfully${NC}"
+                fi
+                ;;
+            *)
+                echo -e "${YELLOW}Exiting without running the test.${NC}"
+                exit 0
+                ;;
+        esac
+    else
+        echo -e "${GREEN}✅ Port $PORT is available${NC}"
+    fi
+}
 
 # Cleanup function to ensure .env is restored and processes are killed
 cleanup() {
     echo -e "\n${YELLOW}Caught termination signal. Cleaning up...${NC}"
     
     # Kill API process if running
-    if [ -n "$API_PID" ]; then
+    if [ -n "$API_PID" ] && ps -p $API_PID > /dev/null; then
         echo -e "${YELLOW}Stopping API process...${NC}"
-        kill $API_PID 2>/dev/null
-        wait $API_PID 2>/dev/null
+        kill -15 $API_PID 2>/dev/null
+
+        # Wait for process to terminate gracefully
+        for i in {1..3}; do
+            if ! ps -p $API_PID > /dev/null; then
+                break
+            fi
+            sleep 1
+        done
+
+        # Force kill if still running
+        if ps -p $API_PID > /dev/null; then
+            echo -e "${YELLOW}⚠️ API process did not terminate gracefully, forcing...${NC}"
+            kill -9 $API_PID 2>/dev/null
+        fi
+
+        wait $API_PID 2>/dev/null || true
+    fi
+
+    # Double-check no processes are using our port
+    local pid=$(lsof -t -i:$PORT 2>/dev/null)
+    if [ -n "$pid" ]; then
+        echo -e "${YELLOW}⚠️ Port $PORT is still in use by process $pid. Attempting to kill...${NC}"
+        kill -9 $pid 2>/dev/null
+        sleep 1
     fi
     
     # Restore original .env file
@@ -63,7 +120,7 @@ create_test_env() {
     cat > .env.test << EOF
 # Test environment configuration for log rotation
 APP_ENV=development
-PORT=8080
+PORT=$PORT
 LOG_LEVEL=debug
 LOG_FORMAT=json
 LOG_OUTPUT_PATH=stdout
@@ -108,14 +165,25 @@ run_test() {
     go run ./cmd/api &
     API_PID=$!
     
+    # Wait a moment for API to start
+    echo -e "${YELLOW}Waiting for API to start...${NC}"
+    sleep 2
+
+    # Check if API started successfully
+    if ! ps -p $API_PID > /dev/null; then
+        echo -e "${RED}❌ API failed to start. Check logs for details:${NC}"
+        tail -n 10 $LOG_FILE
+        cleanup
+    fi
+
     # Generate lots of log entries
     echo -e "${BLUE}Generating log entries to trigger rotation...${NC}"
     end_time=$((SECONDS + TEST_DURATION))
     
     while [ $SECONDS -lt $end_time ]; do
         # Send a request to the API to generate logs
-        curl -s "http://localhost:8080/health" > /dev/null
-        curl -s "http://localhost:8080/api/v1/animals" > /dev/null
+        curl -s "http://localhost:$PORT/health" > /dev/null
+        curl -s "http://localhost:$PORT/api/v1/animals" > /dev/null
         sleep $LOG_INTERVAL
         
         # Show progress
@@ -134,10 +202,38 @@ run_test() {
     
     # Stop the API
     echo -e "${BLUE}Stopping API...${NC}"
-    kill $API_PID 2>/dev/null
-    wait $API_PID 2>/dev/null
+    if [ -n "$API_PID" ] && ps -p $API_PID > /dev/null; then
+        kill -15 $API_PID 2>/dev/null
+
+        # Wait for process to terminate gracefully
+        for i in {1..5}; do
+            if ! ps -p $API_PID > /dev/null; then
+                break
+            fi
+            sleep 1
+        done
+
+        # Force kill if still running
+        if ps -p $API_PID > /dev/null; then
+            echo -e "${YELLOW}⚠️ API process did not terminate gracefully, forcing...${NC}"
+            kill -9 $API_PID 2>/dev/null
+        fi
+
+        wait $API_PID 2>/dev/null || true
+        echo -e "${GREEN}✅ API process terminated${NC}"
+    else
+        echo -e "${YELLOW}⚠️ API process was not running${NC}"
+    fi
     API_PID=""
     
+    # Double-check no processes are using our port
+    local pid=$(lsof -t -i:$PORT 2>/dev/null)
+    if [ -n "$pid" ]; then
+        echo -e "${YELLOW}⚠️ Port $PORT is still in use by process $pid. Attempting to kill...${NC}"
+        kill -9 $pid 2>/dev/null
+        sleep 1
+    fi
+
     # Show final log files
     echo -e "${GREEN}Final log files in $LOG_DIR:${NC}"
     ls -lh "$LOG_DIR"
@@ -150,6 +246,9 @@ main() {
     # Create log directory if it doesn't exist
     mkdir -p "$LOG_DIR"
     
+    # Check if port is available
+    check_port
+
     # Setup test environment
     create_test_env
     
