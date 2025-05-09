@@ -106,20 +106,38 @@ func (d *gormDatabase) CachedFind(ctx context.Context, query *gorm.DB, dest inte
 	// Check if there's a custom cache key in the context
 	var cacheKey string
 
-	// First, try to get the key using the custom type from repository package
-	for _, customKeyName := range []string{"customCacheKey", "KeyCustomCacheKey"} {
-		if customKey := ctx.Value(customKeyName); customKey != nil {
+	// First, check if a key is already set with our exact ContextKey
+	if customKey := ctx.Value(ContextKeyCacheKey); customKey != nil {
+		if key, ok := customKey.(string); ok && key != "" {
+			cacheKey = key
+			d.logger.Debug("Using cache key from context", zap.String("key", cacheKey), zap.String("source", "ContextKeyCacheKey"))
+		}
+	}
+
+	// If no key found yet, try using repository's custom key
+	if cacheKey == "" {
+		if customKey := ctx.Value(ContextKey("customCacheKey")); customKey != nil {
 			if key, ok := customKey.(string); ok && key != "" {
 				cacheKey = key
-				d.logger.Debug("Using custom cache key", zap.String("key", cacheKey))
-				break
+				d.logger.Debug("Using custom cache key", zap.String("key", cacheKey), zap.String("source", "customCacheKey"))
 			}
 		}
 	}
 
-	// If no custom key, generate one from the query
+	// If still no key, try using string key name as fallback
+	if cacheKey == "" {
+		if customKey := ctx.Value("customCacheKey"); customKey != nil {
+			if key, ok := customKey.(string); ok && key != "" {
+				cacheKey = key
+				d.logger.Debug("Using custom cache key from string key", zap.String("key", cacheKey), zap.String("source", "string"))
+			}
+		}
+	}
+
+	// If still no key, generate one from the query as last resort
 	if cacheKey == "" {
 		cacheKey = generateCacheKey(query)
+		d.logger.Debug("Generated cache key from query", zap.String("key", cacheKey), zap.String("source", "generated"))
 	}
 
 	d.cacheContext = context.WithValue(d.cacheContext, ContextKeyCacheKey, cacheKey)

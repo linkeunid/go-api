@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/linkeunid/go-api/internal/model"
 	"github.com/linkeunid/go-api/pkg/cache"
@@ -222,43 +223,103 @@ func (r *mysqlAnimalRepository) FindAllPaginated(ctx context.Context, params pag
 		sortDirection,
 	)
 
-	// Create a new context with the structured cache key
-	queryCtx := r.createContextWithCacheKey(ctx, cacheKey)
+	// Check if we have this query in cache
+	var cacheStatus database.CacheStatus
+	var cacheHit bool
 
-	// Build the base query with explicit model
-	baseQuery := r.db.GetDB().Model(&model.Animal{})
+	if r.db.GetCacheManager() != nil && r.db.GetCacheManager().GetCache() != nil {
+		// Try to get data from cache
+		err := r.db.GetCacheManager().GetCache().Get(ctx, cacheKey, &animals)
+		if err == nil {
+			// Cache hit - we can return early
+			cacheStatus = database.CacheHit
+			cacheHit = true
 
-	// Apply sorting
-	orderClause := fmt.Sprintf("%s %s", sortField, sortDirection)
-	baseQuery = baseQuery.Order(orderClause)
-
-	// Count total rows
-	var totalRows int64
-	if err := baseQuery.Count(&totalRows).Error; err != nil {
-		r.logger.Error("Failed to count animals", zap.Error(err))
-		return result, err
+			r.logger.Debug("Cache hit for paginated query",
+				zap.String("key", cacheKey),
+				zap.Int("page", params.Page),
+				zap.Int("limit", params.Limit))
+		} else {
+			// Cache miss
+			cacheStatus = database.CacheMiss
+			cacheHit = false
+		}
+	} else {
+		// Cache disabled
+		cacheStatus = database.CacheDisabled
 	}
 
-	// Calculate pagination metadata
-	params.CalculatePages(totalRows)
+	// If cache miss or disabled, we need to query the database
+	if !cacheHit {
+		// Important: Apply our pagination directly in the query
+		baseQuery := r.db.GetDB().Model(&model.Animal{})
 
-	// Apply pagination limits and get results - Use CachedFind instead of direct Find
-	paginatedQuery := baseQuery.Offset(params.GetOffset()).Limit(params.Limit)
+		// Apply sorting
+		orderClause := fmt.Sprintf("%s %s", sortField, sortDirection)
+		baseQuery = baseQuery.Order(orderClause)
 
-	// Use cached find for paginated results with the enhanced context
-	err := r.db.CachedFind(queryCtx, paginatedQuery, &animals)
+		// Count total rows
+		var totalRows int64
+		if err := baseQuery.Count(&totalRows).Error; err != nil {
+			r.logger.Error("Failed to count animals", zap.Error(err))
+			return result, err
+		}
 
-	// Get cache status
-	cacheInfo := r.createCacheInfo(queryCtx, r.paginatedTTL)
+		// Calculate pagination metadata
+		params.CalculatePages(totalRows)
+
+		// Calculate offset
+		offset := (params.Page - 1) * params.Limit
+
+		// Construct SQL query for pagination
+		sqlQuery := fmt.Sprintf("SELECT * FROM animals ORDER BY %s %s LIMIT %d OFFSET %d",
+			sortField, sortDirection, params.Limit, offset)
+
+		// Use direct SQL parameters for pagination to ensure they are applied
+		err := r.db.GetDB().Raw(sqlQuery).Scan(&animals).Error
+
+		if err != nil {
+			r.logger.Error("Failed to retrieve paginated animals", zap.Error(err))
+			return result, err
+		}
+
+		// Log the actual number of animals returned
+		r.logger.Debug("Query returned results",
+			zap.Int("count", len(animals)),
+			zap.Int("page", params.Page),
+			zap.Int("limit", params.Limit),
+			zap.Int("offset", offset))
+
+		// Cache the results if caching is enabled
+		if cacheStatus != database.CacheDisabled && r.db.GetCacheManager() != nil && r.db.GetCacheManager().GetCache() != nil {
+			// Parse duration from string
+			ttl, err := time.ParseDuration(r.paginatedTTL)
+			if err != nil {
+				r.logger.Error("Failed to parse TTL", zap.String("ttl", r.paginatedTTL), zap.Error(err))
+				ttl = time.Minute * 5 // Use default of 5 minutes on error
+			}
+
+			// Store in cache
+			if err := r.db.GetCacheManager().GetCache().Set(ctx, cacheKey, animals, ttl); err != nil {
+				r.logger.Warn("Failed to cache paginated animals", zap.Error(err))
+			} else {
+				r.logger.Debug("Stored paginated results in cache",
+					zap.String("key", cacheKey),
+					zap.Duration("ttl", ttl))
+			}
+		}
+	}
+
+	// Create cache info
+	cacheInfo := &CacheInfo{
+		Status:  cacheStatus,
+		Key:     cacheKey,
+		Enabled: cacheStatus != database.CacheDisabled,
+		TTL:     r.paginatedTTL,
+	}
 
 	result.Data = animals
 	result.CacheInfo = cacheInfo
-
-	if err != nil {
-		r.logger.Error("Failed to retrieve paginated animals", zap.Error(err))
-		return result, err
-	}
-
 	return result, nil
 }
 
