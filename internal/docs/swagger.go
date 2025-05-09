@@ -11,9 +11,9 @@ import (
 // @description API for managing various resources including animals
 // @termsOfService http://swagger.io/terms/
 
-// @contact.name API Support
-// @contact.url http://linkeunid.com/support
-// @contact.email support@linkeunid.com
+// @contact.name API Support - Website
+// @contact.url https://linkeun.com/support
+// @contact.email support@linkeun.com
 
 // @license.name GNU General Public License v2.0
 // @license.url https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html

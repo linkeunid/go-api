@@ -19,12 +19,23 @@ import (
 // SetupSwagger configures the Swagger documentation
 func SetupSwagger(port int, isDevelopment bool) {
 	if isDevelopment {
+		// Set basic Swagger info
 		swaggerdocs.SwaggerInfo.Host = fmt.Sprintf("localhost:%d", port)
 		swaggerdocs.SwaggerInfo.Title = "Linkeun Go API"
 		swaggerdocs.SwaggerInfo.Description = "API for managing various resources including animals"
 		swaggerdocs.SwaggerInfo.Version = "1.0"
 		swaggerdocs.SwaggerInfo.BasePath = "/api/v1"
 		swaggerdocs.SwaggerInfo.Schemes = []string{"http", "https"}
+
+		// We're using annotation-based Swagger docs, so we need to rely on the following
+		// annotations in the swagger.go file:
+		//
+		// @contact.name API Support - Website
+		// @contact.url https://linkeun.com/support
+		// @contact.email support@linkeun.com
+		//
+		// @license.name GNU General Public License v2.0
+		// @license.url https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html
 	}
 }
 

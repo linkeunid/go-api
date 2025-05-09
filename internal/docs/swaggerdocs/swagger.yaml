@@ -1,5 +1,6 @@
+basePath: /api/v1
 definitions:
-  github_com_linkeunid_go-api_internal_model.Animal:
+  model.Animal:
     properties:
       age:
         example: 3
@@ -30,7 +31,7 @@ definitions:
     - name
     - species
     type: object
-  github_com_linkeunid_go-api_internal_model.AnimalCreateRequest:
+  model.AnimalCreateRequest:
     properties:
       age:
         example: 3
@@ -45,7 +46,7 @@ definitions:
         example: Cat
         type: string
     type: object
-  github_com_linkeunid_go-api_internal_model.AnimalUpdateRequest:
+  model.AnimalUpdateRequest:
     properties:
       age:
         example: 3
@@ -60,14 +61,14 @@ definitions:
         example: Cat
         type: string
     type: object
-  github_com_linkeunid_go-api_pkg_pagination.PagedData:
+  pagination.PagedData:
     properties:
       cacheInfo: {}
       items: {}
       pagination:
-        $ref: '#/definitions/github_com_linkeunid_go-api_pkg_pagination.Params'
+        $ref: '#/definitions/pagination.Params'
     type: object
-  github_com_linkeunid_go-api_pkg_pagination.Params:
+  pagination.Params:
     properties:
       limit:
         type: integer
@@ -78,7 +79,7 @@ definitions:
       total_pages:
         type: integer
     type: object
-  github_com_linkeunid_go-api_pkg_response.APIResponse:
+  response.APIResponse:
     properties:
       data: {}
       error:
@@ -90,8 +91,19 @@ definitions:
       timestamp:
         type: string
     type: object
+host: localhost:4445
 info:
-  contact: {}
+  contact:
+    email: support@linkeun.com
+    name: API Support - Website
+    url: https://linkeun.com/support
+  description: API for managing various resources including animals
+  license:
+    name: GNU General Public License v2.0
+    url: https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html
+  termsOfService: http://swagger.io/terms/
+  title: Linkeun Go API
+  version: "1.0"
 paths:
   /animals:
     get:
@@ -122,22 +134,22 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/github_com_linkeunid_go-api_pkg_response.APIResponse'
+            - $ref: '#/definitions/response.APIResponse'
             - properties:
                 data:
                   allOf:
-                  - $ref: '#/definitions/github_com_linkeunid_go-api_pkg_pagination.PagedData'
+                  - $ref: '#/definitions/pagination.PagedData'
                   - properties:
                       items:
                         items:
-                          $ref: '#/definitions/github_com_linkeunid_go-api_internal_model.Animal'
+                          $ref: '#/definitions/model.Animal'
                         type: array
                     type: object
               type: object
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/github_com_linkeunid_go-api_pkg_response.APIResponse'
+            $ref: '#/definitions/response.APIResponse'
       summary: Get all animals
       tags:
       - animals
@@ -151,7 +163,7 @@ paths:
         name: animal
         required: true
         schema:
-          $ref: '#/definitions/github_com_linkeunid_go-api_internal_model.AnimalCreateRequest'
+          $ref: '#/definitions/model.AnimalCreateRequest'
       produces:
       - application/json
       responses:
@@ -159,19 +171,19 @@ paths:
           description: Created
           schema:
             allOf:
-            - $ref: '#/definitions/github_com_linkeunid_go-api_pkg_response.APIResponse'
+            - $ref: '#/definitions/response.APIResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/github_com_linkeunid_go-api_internal_model.Animal'
+                  $ref: '#/definitions/model.Animal'
               type: object
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/github_com_linkeunid_go-api_pkg_response.APIResponse'
+            $ref: '#/definitions/response.APIResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/github_com_linkeunid_go-api_pkg_response.APIResponse'
+            $ref: '#/definitions/response.APIResponse'
       summary: Create a new animal
       tags:
       - animals
@@ -194,15 +206,15 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/github_com_linkeunid_go-api_pkg_response.APIResponse'
+            $ref: '#/definitions/response.APIResponse'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/github_com_linkeunid_go-api_pkg_response.APIResponse'
+            $ref: '#/definitions/response.APIResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/github_com_linkeunid_go-api_pkg_response.APIResponse'
+            $ref: '#/definitions/response.APIResponse'
       summary: Delete an animal
       tags:
       - animals
@@ -223,19 +235,19 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/github_com_linkeunid_go-api_pkg_response.APIResponse'
+            - $ref: '#/definitions/response.APIResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/github_com_linkeunid_go-api_internal_model.Animal'
+                  $ref: '#/definitions/model.Animal'
               type: object
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/github_com_linkeunid_go-api_pkg_response.APIResponse'
+            $ref: '#/definitions/response.APIResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/github_com_linkeunid_go-api_pkg_response.APIResponse'
+            $ref: '#/definitions/response.APIResponse'
       summary: Get an animal by ID
       tags:
       - animals
@@ -254,7 +266,7 @@ paths:
         name: animal
         required: true
         schema:
-          $ref: '#/definitions/github_com_linkeunid_go-api_internal_model.AnimalUpdateRequest'
+          $ref: '#/definitions/model.AnimalUpdateRequest'
       produces:
       - application/json
       responses:
@@ -262,24 +274,27 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/github_com_linkeunid_go-api_pkg_response.APIResponse'
+            - $ref: '#/definitions/response.APIResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/github_com_linkeunid_go-api_internal_model.Animal'
+                  $ref: '#/definitions/model.Animal'
               type: object
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/github_com_linkeunid_go-api_pkg_response.APIResponse'
+            $ref: '#/definitions/response.APIResponse'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/github_com_linkeunid_go-api_pkg_response.APIResponse'
+            $ref: '#/definitions/response.APIResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/github_com_linkeunid_go-api_pkg_response.APIResponse'
+            $ref: '#/definitions/response.APIResponse'
       summary: Update an animal
       tags:
       - animals
+schemes:
+- http
+- https
 swagger: "2.0"

@@ -45,6 +45,34 @@ Examples:
 2. If `REDIS_PAGINATED_TTL` is not set, the application will default to using 1/3 of the value specified in `REDIS_CACHE_TTL`.
 3. The TTL values are displayed in the `cacheInfo` section of API responses.
 
+## Pagination Caching
+
+The application has been updated to properly handle pagination with Redis caching. This ensures that each page of results has its own unique cache entry.
+
+### Cache Key Generation
+
+For paginated queries, cache keys are created using the `GenerateListKey` function, which produces structured keys that include:
+- Entity type (e.g., "animals")
+- Page number
+- Limit (items per page)
+- Sort field
+- Sort direction
+
+Example cache key:
+```
+v1:animals:list:direction=asc:limit=2:page=1:sort=id
+```
+
+### Direct SQL Queries
+
+To ensure consistent pagination with caching, the application uses direct SQL queries with explicit LIMIT and OFFSET values:
+
+```sql
+SELECT * FROM animals ORDER BY id asc LIMIT 2 OFFSET 2
+```
+
+This approach avoids inconsistencies that can occur when using the ORM's query builder with caching and ensures that pagination works correctly regardless of cache status.
+
 ## Recommendations
 
 - **Regular items**: Use longer TTL (e.g., `15m` to `1h`) as they change less frequently
@@ -63,4 +91,48 @@ or
 
 ```
 Using calculated paginated TTL (1/3 of default TTL) defaultTTL=15m paginatedTTL=5m
-``` 
+```
+
+## Troubleshooting Pagination Issues
+
+If you encounter problems with pagination and caching:
+
+1. **Clear Redis Cache**: Use the Makefile command to clear the Redis cache:
+   ```
+   make flush-redis
+   ```
+
+2. **Verify Cache Keys**: Examine the `cacheInfo.key` field in API responses to verify that different pages generate different cache keys.
+
+3. **Check Direct SQL**: Enable debug logging to confirm that direct SQL queries with correct LIMIT and OFFSET values are being used:
+   ```
+   LOG_LEVEL=debug
+   ```
+
+4. **Test Without Caching**: Temporarily disable Redis to verify pagination works without caching:
+   ```
+   REDIS_ENABLED=false
+   ```
+
+5. **Examine Cache Contents**: Use Redis CLI to examine cache entries:
+   ```bash
+   redis-cli -h localhost -p 6380
+   keys *animals*
+   get <specific-key>
+   ```
+
+## Cache Status in API Responses
+
+Every API response includes cache information in the `cacheInfo` object:
+
+```json
+"cacheInfo": {
+  "status": "hit",              // hit, miss, or disabled
+  "key": "v1:animals:list:...", // The cache key used
+  "enabled": true,              // Whether caching is enabled
+  "ttl": "5m",                  // TTL for this cache entry
+  "useCount": 0                 // Usage statistics (planned)
+}
+```
+
+This information is useful for debugging and monitoring cache effectiveness. 

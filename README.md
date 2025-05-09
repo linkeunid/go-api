@@ -455,45 +455,32 @@ API responses include cache information in the `cacheInfo` property, which provi
   - The specific model has caching disabled in its implementation
   - The query type is not suitable for caching (e.g., writes, complex joins)
 
-The cache status in API responses helps troubleshoot and monitor the caching system's effectiveness. A high number of "miss" responses may indicate that the TTL is too short, or that data is being modified frequently.
+### Pagination with Caching
 
-#### Interpreting Cache Information
+The API implements a robust solution for paginated queries with caching to ensure that:
 
-The `cacheInfo` object in API responses provides valuable insights for performance analysis and troubleshooting:
+1. Each unique page of results has its own cache entry with the correct cache key
+2. Pagination parameters (page, limit) are properly included in the cache key
+3. Different pages return different results even when cached
+4. Cache invalidation works correctly across all paginated results
 
-```json
-"cacheInfo": {
-  "status": "hit",              // Cache status (hit, miss, disabled)
-  "key": "query:animals:...",   // The exact Redis key used
-  "enabled": true,              // Whether caching is enabled for this request
-  "ttl": "30m",                 // Time until this cache entry expires
-  "useCount": 0                 // Usage statistics (planned feature)
-}
-```
+#### Implementation Details
 
-This information can be used to:
+- **Structured Cache Keys**: The system uses the `GenerateListKey` function to create deterministic cache keys that include pagination parameters:
+  ```
+  v1:animals:list:direction=asc:limit=2:page=1:sort=id
+  ```
 
-1. **Performance Analysis**:
-   - Compare response times between "hit" and "miss" statuses to quantify cache benefits
-   - Monitor hit/miss ratios over time to optimize TTL settings
-   - Identify queries that might benefit from longer or shorter TTL values
+- **Direct SQL Execution**: For paginated queries, the system uses direct SQL queries with explicit LIMIT and OFFSET values to ensure consistent pagination results:
+  ```sql
+  SELECT * FROM animals ORDER BY id asc LIMIT 2 OFFSET 2
+  ```
 
-2. **Debugging**:
-   - Verify that the expected cache keys are being generated
-   - Confirm that cache invalidation is working correctly after updates
-   - Check if caching is properly enabled/disabled based on configuration
+- **Context-Based Cache Key**: Pagination parameters are passed through the context to ensure they're included in the cache key generation.
 
-3. **Cache Optimization**:
-   - Identify frequently accessed data that should have longer TTL values
-   - Detect patterns where certain queries almost always result in "miss"
-   - Determine if the cache key generation strategy is effective
+- **Per-Page TTL Settings**: Paginated results use the `REDIS_PAGINATED_TTL` setting (defaulting to 1/3 of the standard cache TTL) to optimize for frequently changing collections.
 
-4. **Monitoring**:
-   - Track cache hit ratios in your monitoring system
-   - Set up alerts for unexpected cache disabled states
-   - Measure cache efficiency across different API endpoints
-
-The `key` field is particularly useful for Redis CLI debugging, as you can use the exact key to examine or manipulate the cache entry directly.
+This approach ensures that each page maintains its own separate cache entry, preventing pagination issues where different pages might return the same data due to cache key collisions.
 
 ### Cache TTL (Time-To-Live)
 
@@ -543,6 +530,20 @@ For optimal performance, consider these strategies:
    - Enable `CacheEnabled()` for frequently accessed models
    - Set larger TTL for static reference data
    - Use shorter TTL for user-specific or frequently updated data
+
+### Technical Notes for Developers
+
+When implementing custom repositories with pagination support:
+
+1. **Use Structured Cache Keys**: Always use the `cache.GenerateListKey` function to create cache keys that properly include pagination parameters.
+
+2. **Direct SQL for Pagination**: For consistent pagination with caching, use direct SQL queries with explicit LIMIT and OFFSET parameters rather than relying on the ORM's query builder.
+
+3. **Context Propagation**: Ensure that pagination parameters are propagated through the context to the database layer.
+
+4. **Separate Cache Entries**: Verify that each distinct combination of pagination parameters produces a unique cache key.
+
+5. **TTL Considerations**: Use shorter TTL values for paginated queries compared to single-item queries.
 
 ### Best Practices for Cache Usage
 
@@ -602,6 +603,18 @@ The `cacheInfo` field in API responses helps monitor cache efficiency:
 - Consistent "miss" responses for the same query may indicate cache invalidation issues
 - Frequent cache invalidations might suggest that the TTL is too long for that data type
 - "disabled" status when expecting caching indicates configuration issues
+
+#### Debugging Pagination Issues
+
+If you encounter issues with pagination and caching:
+
+1. **Check Cache Keys**: Verify that different pages generate different cache keys by examining the `cacheInfo.key` field in the response.
+
+2. **Examine SQL Logs**: Enable SQL logging to confirm that the correct LIMIT and OFFSET values are being applied.
+
+3. **Clear Redis Cache**: Use the Makefile command `make flush-redis` to clear the Redis cache during testing.
+
+4. **Test Without Caching**: Temporarily disable Redis caching by setting `REDIS_ENABLED=false` to verify that pagination works correctly without caching.
 
 #### Common Cache Issues
 

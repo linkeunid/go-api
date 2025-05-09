@@ -9,7 +9,16 @@ const docTemplate = `{
     "info": {
         "description": "{{escape .Description}}",
         "title": "{{.Title}}",
-        "contact": {},
+        "termsOfService": "http://swagger.io/terms/",
+        "contact": {
+            "name": "API Support - Website",
+            "url": "https://linkeun.com/support",
+            "email": "support@linkeun.com"
+        },
+        "license": {
+            "name": "GNU General Public License v2.0",
+            "url": "https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html"
+        },
         "version": "{{.Version}}"
     },
     "host": "{{.Host}}",
@@ -60,7 +69,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/github_com_linkeunid_go-api_pkg_response.APIResponse"
+                                    "$ref": "#/definitions/response.APIResponse"
                                 },
                                 {
                                     "type": "object",
@@ -68,7 +77,7 @@ const docTemplate = `{
                                         "data": {
                                             "allOf": [
                                                 {
-                                                    "$ref": "#/definitions/github_com_linkeunid_go-api_pkg_pagination.PagedData"
+                                                    "$ref": "#/definitions/pagination.PagedData"
                                                 },
                                                 {
                                                     "type": "object",
@@ -76,7 +85,7 @@ const docTemplate = `{
                                                         "items": {
                                                             "type": "array",
                                                             "items": {
-                                                                "$ref": "#/definitions/github_com_linkeunid_go-api_internal_model.Animal"
+                                                                "$ref": "#/definitions/model.Animal"
                                                             }
                                                         }
                                                     }
@@ -91,7 +100,7 @@ const docTemplate = `{
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_linkeunid_go-api_pkg_response.APIResponse"
+                            "$ref": "#/definitions/response.APIResponse"
                         }
                     }
                 }
@@ -115,7 +124,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_linkeunid_go-api_internal_model.AnimalCreateRequest"
+                            "$ref": "#/definitions/model.AnimalCreateRequest"
                         }
                     }
                 ],
@@ -125,13 +134,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/github_com_linkeunid_go-api_pkg_response.APIResponse"
+                                    "$ref": "#/definitions/response.APIResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/github_com_linkeunid_go-api_internal_model.Animal"
+                                            "$ref": "#/definitions/model.Animal"
                                         }
                                     }
                                 }
@@ -141,13 +150,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_linkeunid_go-api_pkg_response.APIResponse"
+                            "$ref": "#/definitions/response.APIResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_linkeunid_go-api_pkg_response.APIResponse"
+                            "$ref": "#/definitions/response.APIResponse"
                         }
                     }
                 }
@@ -181,13 +190,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/github_com_linkeunid_go-api_pkg_response.APIResponse"
+                                    "$ref": "#/definitions/response.APIResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/github_com_linkeunid_go-api_internal_model.Animal"
+                                            "$ref": "#/definitions/model.Animal"
                                         }
                                     }
                                 }
@@ -197,13 +206,13 @@ const docTemplate = `{
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_linkeunid_go-api_pkg_response.APIResponse"
+                            "$ref": "#/definitions/response.APIResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_linkeunid_go-api_pkg_response.APIResponse"
+                            "$ref": "#/definitions/response.APIResponse"
                         }
                     }
                 }
@@ -234,7 +243,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_linkeunid_go-api_internal_model.AnimalUpdateRequest"
+                            "$ref": "#/definitions/model.AnimalUpdateRequest"
                         }
                     }
                 ],
@@ -244,13 +253,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/github_com_linkeunid_go-api_pkg_response.APIResponse"
+                                    "$ref": "#/definitions/response.APIResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/github_com_linkeunid_go-api_internal_model.Animal"
+                                            "$ref": "#/definitions/model.Animal"
                                         }
                                     }
                                 }
@@ -260,19 +269,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_linkeunid_go-api_pkg_response.APIResponse"
+                            "$ref": "#/definitions/response.APIResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_linkeunid_go-api_pkg_response.APIResponse"
+                            "$ref": "#/definitions/response.APIResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_linkeunid_go-api_pkg_response.APIResponse"
+                            "$ref": "#/definitions/response.APIResponse"
                         }
                     }
                 }
@@ -305,19 +314,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_linkeunid_go-api_pkg_response.APIResponse"
+                            "$ref": "#/definitions/response.APIResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_linkeunid_go-api_pkg_response.APIResponse"
+                            "$ref": "#/definitions/response.APIResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_linkeunid_go-api_pkg_response.APIResponse"
+                            "$ref": "#/definitions/response.APIResponse"
                         }
                     }
                 }
@@ -325,7 +334,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "github_com_linkeunid_go-api_internal_model.Animal": {
+        "model.Animal": {
             "type": "object",
             "required": [
                 "name",
@@ -366,7 +375,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_linkeunid_go-api_internal_model.AnimalCreateRequest": {
+        "model.AnimalCreateRequest": {
             "type": "object",
             "properties": {
                 "age": {
@@ -387,7 +396,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_linkeunid_go-api_internal_model.AnimalUpdateRequest": {
+        "model.AnimalUpdateRequest": {
             "type": "object",
             "properties": {
                 "age": {
@@ -408,17 +417,17 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_linkeunid_go-api_pkg_pagination.PagedData": {
+        "pagination.PagedData": {
             "type": "object",
             "properties": {
                 "cacheInfo": {},
                 "items": {},
                 "pagination": {
-                    "$ref": "#/definitions/github_com_linkeunid_go-api_pkg_pagination.Params"
+                    "$ref": "#/definitions/pagination.Params"
                 }
             }
         },
-        "github_com_linkeunid_go-api_pkg_pagination.Params": {
+        "pagination.Params": {
             "type": "object",
             "properties": {
                 "limit": {
@@ -435,7 +444,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_linkeunid_go-api_pkg_response.APIResponse": {
+        "response.APIResponse": {
             "type": "object",
             "properties": {
                 "data": {},
@@ -458,12 +467,12 @@ const docTemplate = `{
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
-	Version:          "",
-	Host:             "",
-	BasePath:         "",
-	Schemes:          []string{},
-	Title:            "",
-	Description:      "",
+	Version:          "1.0",
+	Host:             "localhost:4445",
+	BasePath:         "/api/v1",
+	Schemes:          []string{"http", "https"},
+	Title:            "Linkeun Go API",
+	Description:      "API for managing various resources including animals",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

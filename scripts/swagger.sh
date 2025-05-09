@@ -31,7 +31,7 @@ else
   sed -i "s|// @host .*|// @host $SWAGGER_API_HOST:$API_PORT|" internal/docs/swagger.go
 fi
 
-# Generate Swagger docs with the correct main.go location
-swag init -g cmd/api/main.go --parseDependency --output ./internal/docs/swaggerdocs
+# Generate Swagger docs directly from the swagger.go file that contains the annotations
+swag init -g internal/docs/swagger.go --output ./internal/docs/swaggerdocs
 
 echo "✅ Swagger docs generated at ./internal/docs/swaggerdocs" 
