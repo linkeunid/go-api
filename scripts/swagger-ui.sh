@@ -4,6 +4,7 @@ set -e
 # Colors for output
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
+RED='\033[0;31m'
 BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 MAGENTA='\033[0;35m'
@@ -21,8 +22,22 @@ SWAGGER_PORT=${SWAGGER_PORT:-8090}
 SWAGGER_HOST=${SWAGGER_HOST:-localhost}
 
 # API settings - where the actual service is running
-API_HOST=${API_HOST:-0.0.0.0}
+API_HOST=${API_HOST:-localhost}
 API_PORT=${PORT:-8080}
+
+# Check if API is running
+if ! command -v lsof > /dev/null; then
+  echo -e "${YELLOW}⚠️ Warning: lsof command not found, skipping API check${NC}"
+else
+  if ! lsof -i:${API_PORT} > /dev/null 2>&1; then
+    echo -e "${YELLOW}⚠️ Warning: API service doesn't appear to be running on ${API_HOST}:${API_PORT}${NC}"
+    echo -e "${YELLOW}⚠️ Some Swagger features may not work correctly${NC}"
+    echo -e "${YELLOW}⚠️ Consider running 'make dev' in another terminal first${NC}"
+    echo ""
+  else
+    echo -e "${GREEN}✅ API service detected on ${API_HOST}:${API_PORT}${NC}"
+  fi
+fi
 
 echo -e "${MAGENTA}🚀 Starting Swagger UI server on ${BOLD}http://${SWAGGER_HOST}:${SWAGGER_PORT}/swagger/${NC}"
 echo -e "${BLUE}📘 This is a standalone UI for OpenAPI documentation${NC}"

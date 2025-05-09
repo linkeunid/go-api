@@ -103,11 +103,6 @@ func main() {
 		w.Write([]byte(`{"message": "CORS test successful"}`))
 	})
 
-	// Start server
-	fmt.Printf("Starting Swagger UI server on %s\n", addr)
-	fmt.Printf("Swagger UI available at http://%s/swagger/\n", addr)
-	fmt.Printf("Configured to use API at http://%s:%s/\n", apiHost, apiPort)
-
 	server := &http.Server{
 		Addr:    addr,
 		Handler: r,
