@@ -385,7 +385,7 @@ migrate-from-model:
 	@go run ./cmd/migrate -create -from-model $(model)
 	@echo "✅ Model migration files created"
 	@echo "🔄 Updating model map..."
-	@go run ./scripts/update_model_map.go
+	@go run ./cmd/model-mapper -sync
 	@echo "✅ Model map updated"
 
 # List available models for migration
