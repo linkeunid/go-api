@@ -731,7 +731,13 @@ setup-full:
 		echo "❌ Git remote URL is required."; \
 		exit 1; \
 	fi
-	@if $(call ask_confirmation, This will rename the module\\, reset the Git repository\\, and set a new remote!, Performing full project setup); then \
-		go run ./cmd/setup-project -module $(module) -remote $(remote) -reset-git -v; \
+	@echo "⚠️ This will perform a full project setup with:"
+	@echo "  - Rename module to $(module)"
+	@echo "  - Reset Git repository (remove .git folder and create new one)"
+	@echo "  - Set Git remote to $(remote)"
+	@echo ""
+	@if $(call ask_confirmation, This will perform a complete project setup. All current Git history will be lost!, Performing full project setup, 🚀); then \
+		echo "🔄 Running setup-project tool..."; \
+		echo "y" | go run ./cmd/setup-project -module $(module) -remote $(remote) -reset-git -v; \
 		printf "\033[$(GREEN)m✅ Project setup complete\033[0m\n"; \
 	fi 

@@ -24,6 +24,7 @@ var (
 	gitRemoteURL  string
 	resetGit      bool
 	verbose       bool
+	skipConfirm   bool
 )
 
 func init() {
@@ -31,6 +32,7 @@ func init() {
 	flag.StringVar(&gitRemoteURL, "remote", "", "Git remote URL (e.g., git@github.com:yourusername/your-project.git)")
 	flag.BoolVar(&resetGit, "reset-git", false, "Reset Git repository (remove .git folder and initialize a new one)")
 	flag.BoolVar(&verbose, "v", false, "Enable verbose output")
+	flag.BoolVar(&skipConfirm, "y", false, "Skip confirmation prompt (use with caution)")
 	flag.Parse()
 }
 
@@ -42,11 +44,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Confirm with the user before proceeding
-	confirmed := confirmAction()
-	if !confirmed {
-		fmt.Println("❌ Operation cancelled.")
-		os.Exit(0)
+	// Confirm with the user before proceeding (if not skipped)
+	if !skipConfirm {
+		confirmed := confirmAction()
+		if !confirmed {
+			fmt.Println("❌ Operation cancelled.")
+			os.Exit(0)
+		}
 	}
 
 	// Start the rename process
