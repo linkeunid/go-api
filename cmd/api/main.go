@@ -17,7 +17,11 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to initialize application: %v", err)
 	}
-	defer app.Logger.Sync()
+	defer func() {
+		if err := app.Logger.Sync(); err != nil {
+			log.Printf("Failed to sync logger: %v", err)
+		}
+	}()
 
 	// Get dependencies
 	logger := app.Logger

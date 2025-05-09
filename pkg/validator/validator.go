@@ -57,7 +57,10 @@ func (v *Validator) init() {
 		english := en.New()
 		uni := ut.New(english, english)
 		trans, _ := uni.GetTranslator("en")
-		en_translations.RegisterDefaultTranslations(validate, trans)
+		if err := en_translations.RegisterDefaultTranslations(validate, trans); err != nil {
+			// Log the error but continue since it's non-critical
+			fmt.Printf("Failed to register default translations: %v\n", err)
+		}
 
 		// Register custom error messages
 		v.registerCustomTranslations(validate, trans)
@@ -70,12 +73,14 @@ func (v *Validator) init() {
 // registerCustomValidations registers custom validation functions
 func (v *Validator) registerCustomValidations(validate *validator.Validate) {
 	// Example: Register a custom validation for animal names
-	validate.RegisterValidation("animalname", func(fl validator.FieldLevel) bool {
+	if err := validate.RegisterValidation("animalname", func(fl validator.FieldLevel) bool {
 		// Animal names should not contain numbers or special characters
 		name := fl.Field().String()
 		reg := regexp.MustCompile(`^[a-zA-Z\s-]+$`)
 		return reg.MatchString(name)
-	})
+	}); err != nil {
+		fmt.Printf("Failed to register animalname validation: %v\n", err)
+	}
 
 	// Add more custom validations as needed
 }
@@ -83,20 +88,24 @@ func (v *Validator) registerCustomValidations(validate *validator.Validate) {
 // registerCustomTranslations registers custom error messages for validations
 func (v *Validator) registerCustomTranslations(validate *validator.Validate, trans ut.Translator) {
 	// Register custom error message for animalname validation
-	validate.RegisterTranslation("animalname", trans, func(ut ut.Translator) error {
+	if err := validate.RegisterTranslation("animalname", trans, func(ut ut.Translator) error {
 		return ut.Add("animalname", "{0} must contain only letters, spaces, and hyphens", true)
 	}, func(ut ut.Translator, fe validator.FieldError) string {
 		t, _ := ut.T("animalname", fe.Field())
 		return t
-	})
+	}); err != nil {
+		fmt.Printf("Failed to register animalname translation: %v\n", err)
+	}
 
 	// Customize the required error message
-	validate.RegisterTranslation("required", trans, func(ut ut.Translator) error {
+	if err := validate.RegisterTranslation("required", trans, func(ut ut.Translator) error {
 		return ut.Add("required", "{0} is required", true)
 	}, func(ut ut.Translator, fe validator.FieldError) string {
 		t, _ := ut.T("required", fe.Field())
 		return t
-	})
+	}); err != nil {
+		fmt.Printf("Failed to register required translation: %v\n", err)
+	}
 
 	// Add more custom translations as needed
 }

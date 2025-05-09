@@ -148,7 +148,9 @@ func (s *AnimalSeeder) generateAnimals(count int) ([]*model.Animal, error) {
 	r := rand.New(source)
 
 	// Configure faker
-	faker.SetRandomStringLength(10)
+	if err := faker.SetRandomStringLength(10); err != nil {
+		return nil, fmt.Errorf("failed to set random string length: %w", err)
+	}
 
 	// Generate random animals
 	animals := make([]*model.Animal, count)

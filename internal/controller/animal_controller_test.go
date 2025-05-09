@@ -21,6 +21,11 @@ import (
 	"go.uber.org/zap"
 )
 
+// Add these at the top of the file, below the imports
+type contextKey string
+
+const validatedModelKey contextKey = "validated_model"
+
 // MockAnimalService is a mock implementation of the service.AnimalService interface
 type MockAnimalService struct {
 	mock.Mock
@@ -291,10 +296,13 @@ func TestAnimal_CreateAnimal(t *testing.T) {
 				handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					// Create the animal from the request body
 					var animal model.Animal
-					json.Unmarshal(jsonBody, &animal)
+					if err := json.Unmarshal(jsonBody, &animal); err != nil {
+						http.Error(w, err.Error(), http.StatusBadRequest)
+						return
+					}
 
 					// Store the validated animal in the context
-					ctx := context.WithValue(r.Context(), "validated_model", &animal)
+					ctx := context.WithValue(r.Context(), validatedModelKey, &animal)
 					controller.CreateAnimal(w, r.WithContext(ctx))
 				})
 
@@ -412,10 +420,13 @@ func TestAnimal_UpdateAnimal(t *testing.T) {
 				r.Put("/{animalID}", func(w http.ResponseWriter, r *http.Request) {
 					// Create the animal from the request body
 					var animal model.Animal
-					json.Unmarshal(jsonBody, &animal)
+					if err := json.Unmarshal(jsonBody, &animal); err != nil {
+						http.Error(w, err.Error(), http.StatusBadRequest)
+						return
+					}
 
 					// Store the validated animal in the context
-					ctx := context.WithValue(r.Context(), "validated_model", &animal)
+					ctx := context.WithValue(r.Context(), validatedModelKey, &animal)
 					controller.UpdateAnimal(w, r.WithContext(ctx))
 				})
 

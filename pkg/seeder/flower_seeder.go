@@ -161,7 +161,9 @@ func (s *FlowerSeeder) generateFlowers(count int) ([]*model.Flower, error) {
 	r := rand.New(source)
 
 	// Configure faker
-	faker.SetRandomStringLength(10)
+	if err := faker.SetRandomStringLength(10); err != nil {
+		return nil, fmt.Errorf("failed to set random string length: %w", err)
+	}
 
 	// Generate random flowers
 	flowers := make([]*model.Flower, count)

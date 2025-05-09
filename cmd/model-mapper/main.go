@@ -8,7 +8,6 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -144,7 +143,7 @@ func getCurrentModels(filePath string) ([]string, error) {
 	var models []string
 
 	// Read the file content
-	content, err := ioutil.ReadFile(filePath)
+	content, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read file: %w", err)
 	}
@@ -219,7 +218,7 @@ func scanModels(modelDir string) ([]string, error) {
 
 // hasTableNameMethod checks if a struct has a TableName method in the file
 func hasTableNameMethod(filePath, structName string) bool {
-	content, err := ioutil.ReadFile(filePath)
+	content, err := os.ReadFile(filePath)
 	if err != nil {
 		return false
 	}
@@ -234,7 +233,7 @@ func hasTableNameMethod(filePath, structName string) bool {
 // updateModelMap updates the modelMap in the specified Go file
 func updateModelMap(filePath string, models []string) error {
 	// Read the file content
-	content, err := ioutil.ReadFile(filePath)
+	content, err := os.ReadFile(filePath)
 	if err != nil {
 		return fmt.Errorf("failed to read file: %w", err)
 	}
@@ -258,7 +257,7 @@ func updateModelMap(filePath string, models []string) error {
 	newContent := pattern.ReplaceAllString(string(content), newMap.String())
 
 	// Write the updated content back to the file
-	if err := ioutil.WriteFile(filePath, []byte(newContent), 0644); err != nil {
+	if err := os.WriteFile(filePath, []byte(newContent), 0644); err != nil {
 		return fmt.Errorf("failed to write file: %w", err)
 	}
 

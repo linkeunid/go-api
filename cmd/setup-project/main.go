@@ -6,7 +6,6 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -99,7 +98,7 @@ func renameModuleInGoMod() {
 
 	// Read go.mod file
 	goModPath := "go.mod"
-	content, err := ioutil.ReadFile(goModPath)
+	content, err := os.ReadFile(goModPath)
 	if err != nil {
 		fmt.Printf("❌ Error reading go.mod: %v\n", err)
 		os.Exit(1)
@@ -110,7 +109,7 @@ func renameModuleInGoMod() {
 		ReplaceAll(content, []byte("module "+newModuleName))
 
 	// Write updated content back to go.mod
-	err = ioutil.WriteFile(goModPath, newContent, 0644)
+	err = os.WriteFile(goModPath, newContent, 0644)
 	if err != nil {
 		fmt.Printf("❌ Error writing go.mod: %v\n", err)
 		os.Exit(1)
@@ -159,7 +158,7 @@ func updateImportPaths() {
 // updateImportsInFile updates import paths in a single Go file
 func updateImportsInFile(filePath string) {
 	// Read file content
-	content, err := ioutil.ReadFile(filePath)
+	content, err := os.ReadFile(filePath)
 	if err != nil {
 		fmt.Printf("❌ Error reading %s: %v\n", filePath, err)
 		return
@@ -179,7 +178,7 @@ func updateImportsInFile(filePath string) {
 	}
 
 	// Write updated content back to file
-	err = ioutil.WriteFile(filePath, newContent, 0644)
+	err = os.WriteFile(filePath, newContent, 0644)
 	if err != nil {
 		fmt.Printf("❌ Error writing %s: %v\n", filePath, err)
 		return

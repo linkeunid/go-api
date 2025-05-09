@@ -94,13 +94,19 @@ func main() {
 
 	// Simple route
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "Visit /swagger/ for API documentation")
+		_, err := fmt.Fprintf(w, "Visit /swagger/ for API documentation")
+		if err != nil {
+			fmt.Printf("Error writing response: %v\n", err)
+		}
 	})
 
 	// Add a test route to verify CORS is working
 	r.Get("/cors-test", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"message": "CORS test successful"}`))
+		_, err := w.Write([]byte(`{"message": "CORS test successful"}`))
+		if err != nil {
+			fmt.Printf("Error writing response: %v\n", err)
+		}
 	})
 
 	server := &http.Server{
