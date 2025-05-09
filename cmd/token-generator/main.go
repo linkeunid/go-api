@@ -94,7 +94,28 @@ func main() {
 	fmt.Printf("  Environment: %s\n", env)
 	fmt.Println("\nUsage Examples:")
 	fmt.Println("  cURL:")
-	fmt.Printf("    curl -H \"Authorization: Bearer %s\" http://localhost:4445/api/v1/protected-endpoint\n", token)
+	fmt.Printf("    curl -H \"Authorization: Bearer %s\" http://localhost:4445/api/v1/protected\n", token)
 	fmt.Println("\n  JavaScript Fetch:")
-	fmt.Printf("    fetch('http://localhost:4445/api/v1/protected-endpoint', {\n      headers: {\n        'Authorization': 'Bearer %s'\n      }\n    })\n", token)
+	fmt.Printf("    fetch('http://localhost:4445/api/v1/protected', {\n      headers: {\n        'Authorization': 'Bearer %s'\n      }\n    })\n", token)
+
+	// Add information about available protected endpoints
+	fmt.Println("\nAvailable Protected Endpoints:")
+	fmt.Println("  1. General User Endpoint:")
+	fmt.Println("     - URL: /api/v1/protected")
+	fmt.Println("     - Method: GET")
+	fmt.Println("     - Access: Any authenticated user")
+	fmt.Println("     - Returns: User information (ID, username, role, email)")
+
+	fmt.Println("\n  2. Admin-Only Endpoint:")
+	fmt.Println("     - URL: /api/v1/protected/admin")
+	fmt.Println("     - Method: GET")
+	fmt.Println("     - Access: Only users with admin role")
+	fmt.Println("     - Returns: Admin-specific information")
+
+	fmt.Println("\n  3. Animal Resource Endpoints:")
+	fmt.Println("     - GET    /api/v1/animals            (List all animals)")
+	fmt.Println("     - POST   /api/v1/animals            (Create a new animal)")
+	fmt.Println("     - GET    /api/v1/animals/{animalID} (Get a specific animal)")
+	fmt.Println("     - PUT    /api/v1/animals/{animalID} (Update an animal)")
+	fmt.Println("     - DELETE /api/v1/animals/{animalID} (Delete an animal)")
 }
