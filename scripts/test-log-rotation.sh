@@ -16,6 +16,40 @@ MAX_SIZE_MB=1     # small size for testing
 BACKUP_COUNT=3
 MAX_AGE_DAYS=1
 
+# API process ID
+API_PID=""
+
+# Cleanup function to ensure .env is restored and processes are killed
+cleanup() {
+    echo -e "\n${YELLOW}Caught termination signal. Cleaning up...${NC}"
+    
+    # Kill API process if running
+    if [ -n "$API_PID" ]; then
+        echo -e "${YELLOW}Stopping API process...${NC}"
+        kill $API_PID 2>/dev/null
+        wait $API_PID 2>/dev/null
+    fi
+    
+    # Restore original .env file
+    if [ -f .env.backup ]; then
+        echo -e "${YELLOW}Restoring original .env file...${NC}"
+        cp .env.backup .env
+        rm .env.backup
+        echo -e "${GREEN}Restored original .env file${NC}"
+    fi
+    
+    # Clean up test files
+    if [ -f .env.test ]; then
+        rm .env.test
+    fi
+    
+    echo -e "${YELLOW}Cleanup complete. Exiting.${NC}"
+    exit 1
+}
+
+# Set up trap to handle interruption signals
+trap cleanup SIGINT SIGTERM SIGHUP
+
 # Create temporary .env file with test settings
 create_test_env() {
     echo "Creating temporary .env file for testing..."
@@ -55,7 +89,9 @@ restore_env() {
         rm .env
         echo -e "${GREEN}Removed test .env file${NC}"
     fi
-    rm .env.test
+    if [ -f .env.test ]; then
+        rm .env.test
+    fi
 }
 
 # Run the API with test settings
@@ -66,6 +102,7 @@ run_test() {
     echo -e "${YELLOW}  Backups: $BACKUP_COUNT${NC}"
     echo -e "${YELLOW}  Max age: $MAX_AGE_DAYS days${NC}"
     echo -e "${YELLOW}  Test duration: $TEST_DURATION seconds${NC}"
+    echo -e "${YELLOW}  (Press Ctrl+C to stop the test at any time)${NC}"
     
     # Start the API in background
     go run ./cmd/api &
@@ -97,8 +134,9 @@ run_test() {
     
     # Stop the API
     echo -e "${BLUE}Stopping API...${NC}"
-    kill $API_PID
+    kill $API_PID 2>/dev/null
     wait $API_PID 2>/dev/null
+    API_PID=""
     
     # Show final log files
     echo -e "${GREEN}Final log files in $LOG_DIR:${NC}"

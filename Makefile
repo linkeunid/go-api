@@ -7,6 +7,23 @@ define print_colorful
 	printf "\033[$(if $(4),1;)$(if $(3),$(3),32)m$(1) $(2)\033[0m\n"
 endef
 
+# Helper function for confirmation prompts
+# Usage: $(call ask_confirmation, warning_message, action_message, emoji)
+# Example: $(call ask_confirmation, This will remove all files!, Cleaning all files, 🧹)
+# Returns "true" if confirmed, "false" if not
+define ask_confirmation
+	printf "\033[1;$(YELLOW)m⚠️ $(1)\033[0m\n"; \
+	printf "\033[1;$(YELLOW)m⚠️ Are you sure you want to proceed? (y/n): \033[0m"; \
+	read -r answer; \
+	if [ "$$answer" = "y" ] || [ "$$answer" = "Y" ]; then \
+		printf "\033[1;$(YELLOW)m$(if $(3),$(3),🔄) $(2)...\033[0m\n"; \
+		true; \
+	else \
+		printf "\033[1;$(RED)m❌ Operation cancelled\033[0m\n"; \
+		false; \
+	fi
+endef
+
 # Color codes for echo statements
 GREEN := 32
 YELLOW := 33
@@ -83,7 +100,9 @@ help:
 	@printf "\033[1;36m🔧 Project Management\033[0m\n"
 	@printf "  \033[1mmake init\033[0m           - 🔧 Initialize the project\n"
 	@printf "  \033[1mmake env-info\033[0m       - ℹ️ Show environment variables used by the application\n"
-	@printf "  \033[1mmake clean\033[0m          - 🧹 Clean build artifacts\n"
+	@printf "  \033[1mmake clean\033[0m          - 🧹 Clean build artifacts (with confirmation)\n"
+	@printf "  \033[1mmake clean-all\033[0m      - 🧹 Clean build artifacts (no confirmation, for CI/scripts)\n"
+	@printf "  \033[1mmake clean-logs\033[0m     - 🧹 Clean only log files\n"
 	@printf "  \033[1mmake flush-redis\033[0m    - 🧹 Explicitly flush Redis cache\n"
 	@printf "\n"
 	@printf "\033[1;36m🔧 Project Template Setup\033[0m\n"
@@ -110,6 +129,8 @@ help:
 	@printf "  \033[1mmake gta\033[0m            - ↩️ Alias for 'generate-token-admin'\n"
 	@printf "  \033[1mmake gtf\033[0m            - ↩️ Alias for 'generate-token-force'\n"
 	@printf "  \033[1mmake tlr\033[0m            - ↩️ Alias for 'test-log-rotation'\n"
+	@printf "  \033[1mmake cl\033[0m             - ↩️ Alias for 'clean-logs'\n"
+	@printf "  \033[1mmake ca\033[0m             - ↩️ Alias for 'clean-all'\n"
 	@printf "  \033[1mmake setup-s\033[0m        - ↩️ Alias for 'setup'\n"
 	@printf "  \033[1mmake setup-g\033[0m        - ↩️ Alias for 'setup-git'\n"
 	@printf "  \033[1mmake setup-f\033[0m        - ↩️ Alias for 'setup-full'\n"
@@ -135,6 +156,14 @@ define flush_redis_cache
 		REDIS_HOST=$$(grep -E "^REDIS_HOST=" .env 2>/dev/null | cut -d= -f2 || echo "localhost"); \
 		REDIS_PORT=$$(grep -E "^REDIS_PORT=" .env 2>/dev/null | cut -d= -f2 || echo "6380"); \
 		REDIS_PASSWORD=$$(grep -E "^REDIS_PASSWORD=" .env 2>/dev/null | cut -d= -f2 || echo ""); \
+		if [ -z "$$REDIS_HOST" ]; then \
+			REDIS_HOST="localhost"; \
+			printf "\033[$(YELLOW)m⚠️ REDIS_HOST is empty, using default: localhost\033[0m\n"; \
+		fi; \
+		if [ -z "$$REDIS_PORT" ]; then \
+			REDIS_PORT="6380"; \
+			printf "\033[$(YELLOW)m⚠️ REDIS_PORT is empty, using default: 6380\033[0m\n"; \
+		fi; \
 		printf "\033[$(BLUE)m🔗 Connecting to Redis at $$REDIS_HOST:$$REDIS_PORT\033[0m\n"; \
 		if [ -n "$$REDIS_PASSWORD" ]; then \
 			printf "\033[$(CYAN)m🔑 Using password from .env file\033[0m\n"; \
@@ -175,7 +204,8 @@ define flush_redis_cache
 					printf "\033[$(RED)m   Redis error: $$FALLBACK_RESULT\033[0m\n"; \
 				fi; \
 			else \
-				printf "\033[1;$(RED)m❌ Could not connect to Redis: $$FLUSH_RESULT\033[0m\n"; \
+				printf "\033[1;$(YELLOW)m⚠️ Could not connect to Redis: $$FLUSH_RESULT\033[0m\n"; \
+				printf "\033[1;$(YELLOW)m⚠️ Continuing without flushing Redis cache\033[0m\n"; \
 			fi; \
 		fi; \
 	else \
@@ -231,9 +261,36 @@ init: swagger-tools swagger update-model-map
 
 # Clean the project
 clean:
-	@printf "\033[1;$(YELLOW)m🧹 Cleaning project...\033[0m\n"
+	@if $(call ask_confirmation, This will remove all generated files including logs, builds, and docs!, Cleaning project, 🧹); then \
+		rm -rf bin/; \
+		rm -rf internal/docs/swaggerdocs/; \
+		rm -rf coverage/; \
+		rm -rf logs/; \
+		find . -name "*.test" -type f -delete; \
+		find . -name ".env.test" -type f -delete; \
+		find . -name ".env.backup" -type f -delete; \
+		printf "\033[$(GREEN)m✅ Project cleaned\033[0m\n"; \
+	fi
+
+# Clean only log files
+clean-logs:
+	@if [ ! -d logs ]; then \
+		printf "\033[$(GREEN)m✅ No log files to clean\033[0m\n"; \
+	elif $(call ask_confirmation, This will remove all log files!, Cleaning log files, 📄); then \
+		rm -rf logs/; \
+		printf "\033[$(GREEN)m✅ Log files cleaned\033[0m\n"; \
+	fi
+
+# Clean the project without confirmation (for use in scripts/CI)
+clean-all:
+	@printf "\033[1;$(YELLOW)m🧹 Cleaning all project files without confirmation...\033[0m\n"
 	@rm -rf bin/
 	@rm -rf internal/docs/swaggerdocs/
+	@rm -rf coverage/
+	@rm -rf logs/
+	@find . -name "*.test" -type f -delete
+	@find . -name ".env.test" -type f -delete
+	@find . -name ".env.backup" -type f -delete
 	@printf "\033[$(GREEN)m✅ Project cleaned\033[0m\n"
 
 # Run tests
@@ -338,9 +395,10 @@ migrate-list-models:
 
 # Roll back the last migration
 migrate-down:
-	@echo "🗃️ Rolling back the last migration..."
-	@go run ./cmd/migrate -down
-	@echo "✅ Migration rollback completed"
+	@if $(call ask_confirmation, This will roll back the last migration!, Rolling back migration, 🔙); then \
+		go run ./cmd/migrate -down; \
+		printf "\033[$(GREEN)m✅ Migration rollback completed\033[0m\n"; \
+	fi
 
 # Check migration status
 migrate-status:
@@ -349,14 +407,9 @@ migrate-status:
 	
 # Reset all migrations
 migrate-reset:
-	@echo "⚠️ This will reset all migrations! Are you sure? (y/n)"
-	@read -r answer; \
-	if [ "$$answer" = "y" ]; then \
-		echo "🗃️ Resetting all migrations..."; \
+	@if $(call ask_confirmation, This will reset all migrations!, Resetting all migrations, 🔄); then \
 		go run ./cmd/migrate -force 0; \
-		echo "✅ All migrations have been reset"; \
-	else \
-		echo "❌ Operation cancelled"; \
+		printf "\033[$(GREEN)m✅ All migrations have been reset\033[0m\n"; \
 	fi
 
 # Run all seeders
@@ -395,28 +448,16 @@ truncate:
 		go run ./cmd/db -help | grep -A100 "Available models:" | grep "^  - " | sed 's/^  - //'; \
 		exit 1; \
 	fi
-	@echo "⚠️ WARNING: This will permanently delete ALL data from the $(model) table!"
-	@echo "Are you sure you want to continue? (y/n)"
-	@read -r answer; \
-	if [ "$$answer" = "y" ]; then \
-		echo "🗑️ Truncating $(model) table..."; \
+	@if $(call ask_confirmation, This will permanently delete ALL data from the $(model) table!, Truncating $(model) table, 🗑️); then \
 		go run ./cmd/db -truncate $(model); \
-		echo "✅ Table truncated successfully"; \
-	else \
-		echo "❌ Operation cancelled"; \
+		printf "\033[$(GREEN)m✅ Table truncated successfully\033[0m\n"; \
 	fi
 
 # Truncate all tables with confirmation
 truncate-all:
-	@echo "⚠️ DANGER: This will permanently delete ALL DATA from ALL TABLES!"
-	@echo "Are you absolutely sure you want to continue? Type 'yes' to confirm:"
-	@read -r answer; \
-	if [ "$$answer" = "yes" ]; then \
-		echo "🗑️ Truncating all tables..."; \
+	@if $(call ask_confirmation, DANGER: This will permanently delete ALL DATA from ALL TABLES!, Truncating all tables, ⚠️); then \
 		go run ./cmd/db -truncate-all; \
-		echo "✅ All tables truncated successfully"; \
-	else \
-		echo "❌ Operation cancelled"; \
+		printf "\033[$(GREEN)m✅ All tables truncated successfully\033[0m\n"; \
 	fi
 
 # Update model map for database operations
@@ -504,16 +545,17 @@ generate-token-admin:
 
 # Force generate JWT token (works in any environment, for emergencies only)
 generate-token-force:
-	@echo "⚠️ WARNING: Forcing token generation regardless of environment!"
-	@if [ ! -f ./bin/token-generator ] || [ ./cmd/token-generator/main.go -nt ./bin/token-generator ]; then \
-		echo "🔨 Compiling token generator..."; \
-		mkdir -p ./bin; \
-		go build -o ./bin/token-generator ./cmd/token-generator; \
+	@if $(call ask_confirmation, Forcing token generation regardless of environment! This should only be used in emergencies., Generating emergency token); then \
+		if [ ! -f ./bin/token-generator ] || [ ./cmd/token-generator/main.go -nt ./bin/token-generator ]; then \
+			echo "🔨 Compiling token generator..."; \
+			mkdir -p ./bin; \
+			go build -o ./bin/token-generator ./cmd/token-generator; \
+		fi; \
+		JWT_SECRET=$$(grep -E "^JWT_SECRET=" .env 2>/dev/null | cut -d= -f2); \
+		if [ -z "$$JWT_SECRET" ]; then JWT_SECRET="default-dev-secret"; fi; \
+		./bin/token-generator --secret="$$JWT_SECRET" --force; \
+		printf "\033[$(GREEN)m✅ Emergency token generation complete\033[0m\n"; \
 	fi
-	@JWT_SECRET=$$(grep -E "^JWT_SECRET=" .env 2>/dev/null | cut -d= -f2); \
-	if [ -z "$$JWT_SECRET" ]; then JWT_SECRET="default-dev-secret"; fi; \
-	./bin/token-generator --secret="$$JWT_SECRET" --force
-	@echo "✅ Forced token generation complete (use for emergencies only)"
 
 # Aliases for common commands
 s: swagger
@@ -534,6 +576,8 @@ gtu: generate-token-user
 gta: generate-token-admin
 gtf: generate-token-force
 tlr: test-log-rotation
+cl: clean-logs
+ca: clean-all
 
 # Project Template Setup aliases
 setup-s: setup
@@ -620,10 +664,11 @@ fancy-ps: ## Show fancy container status with colors and details
 	@echo ""
 
 docker-clean: ## Remove all containers, volumes, and images
-	@echo "🧹 Cleaning up Docker resources..."
-	@docker compose -f docker-compose.yml down -v
-	@docker system prune -af --volumes
-	@echo "✅ Docker cleanup complete"
+	@if $(call ask_confirmation, This will remove ALL Docker containers\\, volumes\\, and images!, Cleaning Docker resources); then \
+		docker compose -f docker-compose.yml down -v; \
+		docker system prune -af --volumes; \
+		printf "\033[$(GREEN)m✅ Docker cleanup complete\033[0m\n"; \
+	fi
 
 # Docker command aliases
 ddb: docker-db
@@ -686,5 +731,7 @@ setup-full:
 		echo "❌ Git remote URL is required."; \
 		exit 1; \
 	fi
-	@echo "🔄 Performing full project setup..."
-	@go run ./cmd/setup-project -module $(module) -remote $(remote) -reset-git -v 
+	@if $(call ask_confirmation, This will rename the module\\, reset the Git repository\\, and set a new remote!, Performing full project setup); then \
+		go run ./cmd/setup-project -module $(module) -remote $(remote) -reset-git -v; \
+		printf "\033[$(GREEN)m✅ Project setup complete\033[0m\n"; \
+	fi 
