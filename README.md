@@ -46,6 +46,7 @@ A comprehensive Go API project with RESTful endpoints, JWT authentication, cachi
     - [Caching Best Practices](#caching-best-practices)
   - [Logging System](#logging-system)
     - [Logging Configuration](#logging-configuration)
+      - [Understanding LOG\_LEVEL](#understanding-log_level)
     - [Log Output Options](#log-output-options)
     - [Log Rotation](#log-rotation)
     - [Testing Log Rotation](#testing-log-rotation)
@@ -586,6 +587,44 @@ LOG_FILE_MAX_SIZE=100           # Maximum size in megabytes before rotation
 LOG_FILE_MAX_BACKUPS=3          # Maximum number of old log files to retain
 LOG_FILE_MAX_AGE=28             # Maximum number of days to retain old log files
 LOG_FILE_COMPRESS=true          # Whether to compress rotated log files
+```
+
+#### Understanding LOG_LEVEL
+
+The `LOG_LEVEL` setting controls which messages are displayed in your logs, using a hierarchical approach:
+
+| LOG_LEVEL | Debug messages | Info messages | Warning messages | Error messages |
+| --------- | -------------- | ------------- | ---------------- | -------------- |
+| `debug`   | ✅ Shown        | ✅ Shown       | ✅ Shown          | ✅ Shown        |
+| `info`    | ❌ Hidden       | ✅ Shown       | ✅ Shown          | ✅ Shown        |
+| `warn`    | ❌ Hidden       | ❌ Hidden      | ✅ Shown          | ✅ Shown        |
+| `error`   | ❌ Hidden       | ❌ Hidden      | ❌ Hidden         | ✅ Shown        |
+
+**Guidelines for choosing a level:**
+
+- **Development environments**: Use `debug` to see all logs including detailed debugging information
+- **Testing environments**: Use `info` to see normal operational logs plus warnings and errors
+- **Production environments**: Use `warn` or `error` to reduce log volume and focus on important issues
+
+**Examples:**
+
+```
+# Show all possible logs (development)
+LOG_LEVEL=debug
+
+# Show operational logs, warnings and errors (testing)
+LOG_LEVEL=info
+
+# Show only warnings and errors (production)
+LOG_LEVEL=warn
+
+# Show only errors (production with minimal logging)
+LOG_LEVEL=error
+```
+
+Each log entry includes a level indicator (L) in its output, like:
+```json
+{"L":"INFO","T":"2025-05-09T22:15:06.558+0700","C":"bootstrap/server.go:173","M":"Swagger UI available at","url":"http://localhost:8080/swagger/"}
 ```
 
 ### Log Output Options
