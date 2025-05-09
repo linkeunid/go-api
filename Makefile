@@ -25,6 +25,19 @@ help:
 	@echo "  make migrate-status - Show current migration status"
 	@echo "  make migrate-reset  - Reset all migrations"
 	@echo ""
+	@echo "Database seeders:"
+	@echo "  make seed           - Run all database seeders"
+	@echo "  make seed-animal    - Run only animal seeder"
+	@echo "  make seed-flower    - Run only flower seeder"
+	@echo "  make seed-count     - Run seeders with custom count (e.g., make seed-count count=100)"
+	@echo ""
+	@echo "Database operations:"
+	@echo "  make truncate model=NAME - Truncate specific table with confirmation"
+	@echo "  make truncate-all   - Truncate all tables with confirmation"
+	@echo "  make update-model-map - Update model map for database operations"
+	@echo "  make sync-model-map - Sync model map by adding new models and removing deleted ones"
+	@echo "  make clean-model-map - Remove models from the map that no longer exist"
+	@echo ""
 	@echo "  make env-info       - Show environment variables used by the application"
 	@echo ""
 	@echo "Docker commands:"
@@ -44,6 +57,12 @@ help:
 	@echo "  make d              - Run development server with hot reload"
 	@echo "  make t              - Run tests"
 	@echo "  make l              - Lint code"
+	@echo "  make sd             - Run all database seeders"
+	@echo "  make tr             - Truncate specific table with confirmation"
+	@echo "  make tra            - Truncate all tables with confirmation"
+	@echo "  make um             - Update model map for database operations"
+	@echo "  make cm             - Clean model map (removing non-existent models)"
+	@echo "  make sm             - Sync model map (adding new models and removing deleted ones)"
 	@echo "  make ddb            - Start database containers"
 	@echo "  make dup            - Start all containers"
 	@echo "  make ddown          - Stop all containers"
@@ -97,7 +116,7 @@ swagger-tools:
 	@echo "✅ Swagger tools installed"
 
 # Initialize the project (download dependencies, generate swagger, etc.)
-init: swagger-tools swagger
+init: swagger-tools swagger update-model-map
 	@echo "🔧 Initializing project..."
 	@echo "✅ Project initialized successfully"
 
@@ -176,6 +195,9 @@ migrate-from-model:
 	@echo "🗃️ Creating migration from model: $(model)..."
 	@go run ./cmd/migrate -create -from-model $(model)
 	@echo "✅ Model migration files created"
+	@echo "🔄 Updating model map..."
+	@go run ./scripts/update_model_map.go
+	@echo "✅ Model map updated"
 
 # List available models for migration
 migrate-list-models:
@@ -205,6 +227,81 @@ migrate-reset:
 		echo "❌ Operation cancelled"; \
 	fi
 
+# Run all seeders
+seed:
+	@echo "🌱 Running all database seeders..."
+	@go run ./cmd/seed -all
+	@echo "✅ Database seeding completed"
+
+# Run only animal seeder
+seed-animal:
+	@echo "🐾 Running animal seeder..."
+	@go run ./cmd/seed -seeder=animal
+	@echo "✅ Animal seeding completed"
+
+# Run only flower seeder
+seed-flower:
+	@echo "🌸 Running flower seeder..."
+	@go run ./cmd/seed -seeder=flower
+	@echo "✅ Flower seeding completed"
+
+# Run seeders with custom count
+seed-count:
+	@echo "🌱 Running seeders with count: $(count)..."
+	@if [ -z "$(count)" ]; then \
+		echo "❌ Count is required. Usage: make seed-count count=100"; \
+		exit 1; \
+	fi
+	@go run ./cmd/seed -all -count=$(count)
+	@echo "✅ Database seeding completed with count: $(count)"
+
+# Truncate table(s) based on model name
+truncate:
+	@if [ -z "$(model)" ]; then \
+		echo "❌ Model name is required. Usage: make truncate model=animal"; \
+		echo "Available models:"; \
+		go run ./cmd/db -help | grep -A100 "Available models:" | grep "^  - " | sed 's/^  - //'; \
+		exit 1; \
+	fi
+	@echo "⚠️ WARNING: This will permanently delete ALL data from the $(model) table!"
+	@echo "Are you sure you want to continue? (y/n)"
+	@read -r answer; \
+	if [ "$$answer" = "y" ]; then \
+		echo "🗑️ Truncating $(model) table..."; \
+		go run ./cmd/db -truncate $(model); \
+		echo "✅ Table truncated successfully"; \
+	else \
+		echo "❌ Operation cancelled"; \
+	fi
+
+# Truncate all tables with confirmation
+truncate-all:
+	@echo "⚠️ DANGER: This will permanently delete ALL DATA from ALL TABLES!"
+	@echo "Are you absolutely sure you want to continue? Type 'yes' to confirm:"
+	@read -r answer; \
+	if [ "$$answer" = "yes" ]; then \
+		echo "🗑️ Truncating all tables..."; \
+		go run ./cmd/db -truncate-all; \
+		echo "✅ All tables truncated successfully"; \
+	else \
+		echo "❌ Operation cancelled"; \
+	fi
+
+# Update model map for database operations
+update-model-map:
+	@echo "🔄 Updating model map for database operations..."
+	@go run ./scripts/update_model_map.go
+
+# Clean model map (remove models that no longer exist)
+clean-model-map:
+	@echo "🧹 Cleaning model map (removing non-existent models)..."
+	@go run ./scripts/update_model_map.go --clean-only
+
+# Sync model map (add new models and remove deleted ones)
+sync-model-map:
+	@echo "🔄 Syncing model map (adding new models and removing deleted ones)..."
+	@go run ./scripts/update_model_map.go --sync
+
 # Aliases for common commands
 s: swagger
 su: swagger-ui
@@ -212,6 +309,12 @@ r: run
 d: dev
 t: test
 l: lint
+sd: seed
+tr: truncate
+tra: truncate-all
+um: update-model-map
+cm: clean-model-map
+sm: sync-model-map
 
 # Docker commands
 docker-db: ## Start only database containers (MySQL and Redis)

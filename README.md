@@ -182,6 +182,48 @@ Each migration consists of two files:
 
 Model-based migrations automatically generate SQL from your Go model structs using GORM tags to determine column types, constraints, and indexes.
 
+### Database Seeding
+
+The API includes a seeding system to populate the database with test data:
+
+```bash
+# Run all database seeders
+make seed
+
+# Run specific seeder
+make seed-animal
+make seed-flower
+
+# Run seeders with custom record count
+make seed-count count=500
+```
+
+### Model Map Management
+
+The API uses a model map system to maintain a registry of available models for database operations. This system automatically detects models with a `TableName()` method.
+
+```bash
+# Update model map by adding new models
+make update-model-map
+# or using the shorthand
+make um
+
+# Clean model map by removing models that no longer exist
+make clean-model-map
+# or using the shorthand
+make cm
+
+# Sync model map by adding new models and removing deleted ones
+make sync-model-map
+# or using the shorthand
+make sm
+```
+
+These commands help maintain the model map when adding or removing models:
+- `update-model-map`: Adds new models but doesn't remove deleted ones
+- `clean-model-map`: Removes models that no longer exist in the filesystem
+- `sync-model-map`: Both adds new models and removes deleted ones
+
 ### Generating Swagger Documentation
 
 The API includes Swagger documentation. To generate or update the documentation:
