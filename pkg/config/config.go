@@ -73,9 +73,14 @@ type RedisConfig struct {
 
 // LoggingConfig holds logging configuration
 type LoggingConfig struct {
-	Level      string
-	Format     string
-	OutputPath string
+	Level          string
+	Format         string
+	OutputPath     string
+	FileOutputPath string // Path to log file if file logging is enabled
+	FileMaxSize    int    // Maximum size of log files in megabytes before rotation
+	FileMaxBackups int    // Maximum number of old log files to retain
+	FileMaxAge     int    // Maximum number of days to retain old log files
+	FileCompress   bool   // Whether to compress rotated log files
 }
 
 // AuthConfig holds authentication configuration
@@ -148,9 +153,14 @@ func LoadConfig() *Config {
 			PoolSize:     getEnvAsInt("REDIS_POOL_SIZE", 10),
 		},
 		Logging: LoggingConfig{
-			Level:      getLogLevel(env),
-			Format:     getEnv("LOG_FORMAT", "json"),
-			OutputPath: getEnv("LOG_OUTPUT_PATH", "stdout"),
+			Level:          getLogLevel(env),
+			Format:         getEnv("LOG_FORMAT", "json"),
+			OutputPath:     getEnv("LOG_OUTPUT_PATH", "stdout"),
+			FileOutputPath: getEnv("LOG_FILE_PATH", ""),
+			FileMaxSize:    getEnvAsInt("LOG_FILE_MAX_SIZE", 100),
+			FileMaxBackups: getEnvAsInt("LOG_FILE_MAX_BACKUPS", 3),
+			FileMaxAge:     getEnvAsInt("LOG_FILE_MAX_AGE", 28),
+			FileCompress:   getEnvAsBool("LOG_FILE_COMPRESS", true),
 		},
 		Auth: AuthConfig{
 			Enabled:        getEnvAsBool("AUTH_ENABLED", false),

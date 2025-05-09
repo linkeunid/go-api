@@ -158,6 +158,17 @@ func SetupServer(app *App, animalController *controller.Animal) *http.Server {
 func LogServerInfo(logger *zap.Logger, port int, isDevelopment bool, config *config.Config) {
 	logger.Info("Starting server", zap.Int("port", port))
 	logger.Info("Auth configuration", zap.Bool("enabled", config.Auth.Enabled))
+
+	// Log information about file logging if enabled
+	if config.Logging.FileOutputPath != "" {
+		logger.Info("File logging enabled",
+			zap.String("path", config.Logging.FileOutputPath),
+			zap.Int("maxSize", config.Logging.FileMaxSize),
+			zap.Int("maxBackups", config.Logging.FileMaxBackups),
+			zap.Int("maxAge", config.Logging.FileMaxAge),
+			zap.Bool("compress", config.Logging.FileCompress))
+	}
+
 	if isDevelopment {
 		logger.Info("Swagger UI available at", zap.String("url", fmt.Sprintf("http://localhost:%d/swagger/", port)))
 	}

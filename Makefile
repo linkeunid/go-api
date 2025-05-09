@@ -67,6 +67,7 @@ help:
 	@printf "  \033[1mmake fmt\033[0m            - ✨ Format code\n"
 	@printf "  \033[1mmake lint\033[0m           - 🔍 Lint code\n"
 	@printf "  \033[1mmake test-coverage\033[0m  - 📊 Run tests with coverage report\n"
+	@printf "  \033[1mmake test-log-rotation\033[0m - 📋 Test log file rotation functionality\n"
 	@printf "  \033[1mmake mocks\033[0m          - 🧩 Generate mocks for testing\n"
 	@printf "\n"
 	@printf "\033[1;36m📚 Documentation\033[0m\n"
@@ -108,6 +109,7 @@ help:
 	@printf "  \033[1mmake gtu\033[0m            - ↩️ Alias for 'generate-token-user'\n"
 	@printf "  \033[1mmake gta\033[0m            - ↩️ Alias for 'generate-token-admin'\n"
 	@printf "  \033[1mmake gtf\033[0m            - ↩️ Alias for 'generate-token-force'\n"
+	@printf "  \033[1mmake tlr\033[0m            - ↩️ Alias for 'test-log-rotation'\n"
 	@printf "  \033[1mmake setup-s\033[0m        - ↩️ Alias for 'setup'\n"
 	@printf "  \033[1mmake setup-g\033[0m        - ↩️ Alias for 'setup-git'\n"
 	@printf "  \033[1mmake setup-f\033[0m        - ↩️ Alias for 'setup-full'\n"
@@ -263,6 +265,11 @@ test-repository:
 test-race:
 	@echo "🧪 Running tests with race detection..."
 	@./scripts/test.sh --race --verbose
+
+# Test log file rotation
+test-log-rotation:
+	@echo "📋 Testing log file rotation..."
+	@./scripts/test-log-rotation.sh
 
 # Format code
 fmt:
@@ -526,6 +533,7 @@ gt: generate-token
 gtu: generate-token-user
 gta: generate-token-admin
 gtf: generate-token-force
+tlr: test-log-rotation
 
 # Project Template Setup aliases
 setup-s: setup

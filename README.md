@@ -43,6 +43,12 @@ A comprehensive Go API project with RESTful endpoints, JWT authentication, cachi
       - [Cache TTL Strategy](#cache-ttl-strategy)
       - [Cache Invalidation](#cache-invalidation)
     - [Caching Best Practices](#caching-best-practices)
+    - [Logging System](#logging-system)
+      - [Logging Configuration](#logging-configuration)
+      - [Log Output Options](#log-output-options)
+      - [Log Rotation](#log-rotation)
+      - [Testing Log Rotation](#testing-log-rotation)
+      - [Logging Best Practices](#logging-best-practices)
   - [Database Operations](#database-operations)
     - [Migrations](#migrations)
     - [Seeding](#seeding)
@@ -107,6 +113,16 @@ PORT=8080
 SERVER_READ_TIMEOUT=10s          
 SERVER_WRITE_TIMEOUT=10s         
 SERVER_SHUTDOWN_TIMEOUT=10s      
+
+# Logging configuration
+LOG_LEVEL=info                  # Options: debug, info, warn, error
+LOG_FORMAT=json                 # Options: json, console
+LOG_OUTPUT_PATH=stdout          # Options: stdout, stderr
+LOG_FILE_PATH=./logs/app.log    # Path to log file (empty = disable file logging)
+LOG_FILE_MAX_SIZE=100           # Maximum size of log files in megabytes before rotation
+LOG_FILE_MAX_BACKUPS=3          # Maximum number of old log files to retain
+LOG_FILE_MAX_AGE=28             # Maximum number of days to retain old log files
+LOG_FILE_COMPRESS=true          # Whether to compress rotated log files
 
 # Database configuration
 DB_USER=linkeun                  
@@ -543,6 +559,87 @@ For optimal performance:
    - Use password authentication
    - Consider network security measures
    - Rotate credentials periodically
+
+## Logging System
+
+The API implements a configurable logging system with the following features:
+
+- Multiple log outputs (console and/or file)
+- Log rotation for file-based logs
+- Configurable log levels and formats
+- Retention policies for old log files
+
+### Logging Configuration
+
+Configure logging in your `.env` file:
+
+```
+# Basic logging configuration
+LOG_LEVEL=info                  # Options: debug, info, warn, error
+LOG_FORMAT=json                 # Options: json, console
+LOG_OUTPUT_PATH=stdout          # Options: stdout, stderr
+
+# File logging with rotation
+LOG_FILE_PATH=./logs/app.log    # Path to log file (empty = disable file logging)
+LOG_FILE_MAX_SIZE=100           # Maximum size in megabytes before rotation
+LOG_FILE_MAX_BACKUPS=3          # Maximum number of old log files to retain
+LOG_FILE_MAX_AGE=28             # Maximum number of days to retain old log files
+LOG_FILE_COMPRESS=true          # Whether to compress rotated log files
+```
+
+### Log Output Options
+
+You can configure the logger to output to:
+
+1. **Standard Output/Error Only**: Set `LOG_OUTPUT_PATH=stdout` and leave `LOG_FILE_PATH` empty
+2. **File Only**: Set `LOG_FILE_PATH` to a valid path and `LOG_OUTPUT_PATH` to anything except stdout/stderr
+3. **Both Console and File**: Set both `LOG_FILE_PATH` to a valid path and `LOG_OUTPUT_PATH=stdout` or `LOG_OUTPUT_PATH=stderr`
+
+### Log Rotation
+
+When file logging is enabled, logs will automatically rotate when:
+
+- The file reaches the specified maximum size (`LOG_FILE_MAX_SIZE` in megabytes)
+- The maximum number of backup files is limited by `LOG_FILE_MAX_BACKUPS`
+- Old log files older than `LOG_FILE_MAX_AGE` days are automatically deleted
+
+### Testing Log Rotation
+
+The project includes a script to test log rotation functionality:
+
+```bash
+# Run the log rotation test
+make test-log-rotation
+# or
+./scripts/test-log-rotation.sh
+```
+
+This script:
+1. Creates a temporary environment with small log file size limits
+2. Runs the API with file logging enabled
+3. Generates enough log entries to trigger rotation
+4. Shows the resulting log files
+5. Restores the original environment configuration
+
+### Logging Best Practices
+
+For optimal logging:
+
+1. **Choose Appropriate Log Levels**:
+   - Use `debug` for detailed troubleshooting
+   - Use `info` for general operational information
+   - Use `warn` for concerning but non-critical issues
+   - Use `error` for serious problems
+
+2. **Configure Rotation Settings**:
+   - Set reasonable file size limits based on disk space
+   - Adjust retention period based on compliance requirements
+   - Enable compression for long-term storage
+
+3. **Production Settings**:
+   - In production, consider using a log aggregation system
+   - Set higher log levels (`warn` or `error`) to reduce disk I/O
+   - Ensure log directories have appropriate permissions
 
 ## Database Operations
 
