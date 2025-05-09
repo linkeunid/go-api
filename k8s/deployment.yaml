@@ -1,0 +1,143 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: go-api
+  labels:
+    app: go-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: go-api
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: go-api
+    spec:
+      containers:
+        - name: api
+          image: ${API_IMAGE:-go-api:latest}
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+              name: http
+          env:
+            - name: APP_ENV
+              value: "production"
+            - name: PORT
+              value: "8080"
+            - name: SERVER_READ_TIMEOUT
+              value: "10s"
+            - name: SERVER_WRITE_TIMEOUT
+              value: "10s"
+            - name: SERVER_SHUTDOWN_TIMEOUT
+              value: "10s"
+            - name: DSN
+              valueFrom:
+                secretKeyRef:
+                  name: go-api-secrets
+                  key: db-dsn
+            - name: REDIS_ENABLED
+              value: "true"
+            - name: REDIS_HOST
+              value: "redis"
+            - name: REDIS_PORT
+              value: "6380"
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: go-api-secrets
+                  key: redis-password
+            - name: REDIS_DB
+              value: "0"
+            - name: REDIS_CACHE_TTL
+              value: "15m"
+            - name: REDIS_QUERY_CACHING
+              value: "true"
+            - name: REDIS_KEY_PREFIX
+              value: "linkeun_api:"
+            - name: REDIS_POOL_SIZE
+              value: "10"
+            - name: LOG_LEVEL
+              value: "info"
+            - name: LOG_FORMAT
+              value: "json"
+            - name: LOG_OUTPUT_PATH
+              value: "stdout"
+          resources:
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 2
+          volumeMounts:
+            - name: config
+              mountPath: /app/config
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: go-api-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: go-api
+  labels:
+    app: go-api
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app: go-api
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: go-api-ingress
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+spec:
+  rules:
+    - host: api.linkeun.id
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: go-api
+                port:
+                  name: http
+  tls:
+    - hosts:
+        - api.linkeun.id
+      secretName: linkeun-tls-secret

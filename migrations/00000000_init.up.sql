@@ -1,0 +1,2 @@
+-- Migration Up
+-- Initial migration setup - no operations needed

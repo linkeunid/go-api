@@ -1,0 +1,155 @@
+version: "3.8"
+
+services:
+  # API server service
+  api:
+    image: ${API_IMAGE:-go-api:latest}
+    container_name: go-api
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${API_PORT:-8080}:8080"
+    environment:
+      # App configuration
+      - APP_ENV=${APP_ENV:-development}
+      - PORT=8080
+      - SERVER_READ_TIMEOUT=${SERVER_READ_TIMEOUT:-10s}
+      - SERVER_WRITE_TIMEOUT=${SERVER_WRITE_TIMEOUT:-10s}
+      - SERVER_SHUTDOWN_TIMEOUT=${SERVER_SHUTDOWN_TIMEOUT:-10s}
+
+      # Database configuration
+      - DSN=${DB_USER:-root}:${DB_PASSWORD:-root}@tcp(${DB_HOST:-mysql}:${DB_PORT:-3307})/${DB_NAME:-linkeun_go_api}?${DB_PARAMS:-charset=utf8mb4&parseTime=True&loc=Local}
+
+      # Redis configuration
+      - REDIS_ENABLED=${REDIS_ENABLED:-false}
+      - REDIS_HOST=${REDIS_HOST:-redis}
+      - REDIS_PORT=${REDIS_PORT:-6380}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      - REDIS_DB=${REDIS_DB:-0}
+      - REDIS_CACHE_TTL=${REDIS_CACHE_TTL:-15m}
+      - REDIS_QUERY_CACHING=${REDIS_QUERY_CACHING:-true}
+      - REDIS_KEY_PREFIX=${REDIS_KEY_PREFIX:-linkeun_api:}
+      - REDIS_POOL_SIZE=${REDIS_POOL_SIZE:-10}
+
+      # Logging configuration
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - LOG_FORMAT=${LOG_FORMAT:-json}
+      - LOG_OUTPUT_PATH=${LOG_OUTPUT_PATH:-stdout}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "/healthcheck.sh"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 60s
+    networks:
+      - linkeun-network
+    volumes:
+      - ./config:/app/config:ro
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    user: "${UID:-1000}:${GID:-1000}"
+
+  # MySQL database service
+  mysql:
+    image: mysql:8.0
+    container_name: go-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-root}
+      MYSQL_DATABASE: ${DB_NAME:-go-api}
+      MYSQL_USER: ${DB_USER:-go-api}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-root}
+      # Automatic creation of test database for running tests
+      MYSQL_TESTING_DATABASE: ${DB_NAME:-go-api}_test
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./docker/mysql/init:/docker-entrypoint-initdb.d
+      - ./docker/mysql/conf:/etc/mysql/conf.d
+    ports:
+      - "${DB_HOST_PORT:-3307}:${DB_PORT:-3307}"
+    command: --port=${DB_PORT:-3307}
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "--silent",
+          "-h",
+          "localhost",
+          "-u",
+          "root",
+          "-p${DB_PASSWORD:-root}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - linkeun-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Redis for caching
+  redis:
+    image: redis:7-alpine
+    container_name: linkeun-redis
+    restart: unless-stopped
+    command: >
+      redis-server 
+      --appendonly yes
+      --requirepass "${REDIS_PASSWORD:-redis}"
+      --port ${REDIS_PORT:-6380}
+    ports:
+      - "${REDIS_HOST_PORT:-6380}:${REDIS_PORT:-6380}"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "${REDIS_PORT:-6380}", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    networks:
+      - linkeun-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Init service - runs before everything to set up directories and permissions
+  init:
+    image: alpine:latest
+    command: >
+      sh -c "mkdir -p /init &&
+             touch /init/placeholder.sql &&
+             chown -R 1000:1000 /init &&
+             chmod -R 755 /init &&
+             echo 'Init directory prepared with correct permissions'"
+    volumes:
+      - ./docker/mysql/init:/init
+    user: "0:0" # Run as root
+    restart: "no"
+
+networks:
+  linkeun-network:
+    driver: bridge
+
+volumes:
+  mysql_data:
+    driver: local
+  redis_data:
+    driver: local

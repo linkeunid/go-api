@@ -1,0 +1,2 @@
+-- Migration Down
+-- Initial migration rollback - no operations needed
