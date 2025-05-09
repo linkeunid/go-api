@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <defs>
+    <!-- Gradient for the boxes -->
+    <linearGradient id="setupGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4D7CFE;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#3867D6;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="dbGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#26de81;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#20bf6b;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="devGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#fd9644;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#fa8231;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="deployGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#a55eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8854d0;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Arrow marker -->
+    <marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" 
+      markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#4a4a4a"/>
+    </marker>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="800" height="600" fill="#f5f6fa" rx="10" ry="10"/>
+  
+  <!-- Title -->
+  <text x="400" y="40" font-family="Arial" font-size="24" font-weight="bold" text-anchor="middle" fill="#2f3542">Go API Development Workflow</text>
+  
+  <!-- Setup & Configuration Section -->
+  <g>
+    <rect x="50" y="80" width="300" height="150" rx="10" ry="10" fill="url(#setupGradient)" stroke="#2f3542" stroke-width="2"/>
+    <text x="200" y="110" font-family="Arial" font-size="18" font-weight="bold" text-anchor="middle" fill="white">Setup & Configuration</text>
+    
+    <!-- Steps -->
+    <g font-family="Arial" font-size="14" fill="white">
+      <text x="70" y="140">1. Clone Repository</text>
+      <text x="70" y="170">2. Setup Project Template (setup-full)</text>
+      <text x="70" y="200">3. Configure Environment</text>
+      <text x="70" y="230">4. Update Dependencies (go mod tidy)</text>
+    </g>
+  </g>
+  
+  <!-- Database Management Section -->
+  <g>
+    <rect x="50" y="270" width="300" height="180" rx="10" ry="10" fill="url(#dbGradient)" stroke="#2f3542" stroke-width="2"/>
+    <text x="200" y="300" font-family="Arial" font-size="18" font-weight="bold" text-anchor="middle" fill="white">Database Management</text>
+    
+    <!-- Steps -->
+    <g font-family="Arial" font-size="14" fill="white">
+      <text x="70" y="330">1. Create/Update Models</text>
+      <text x="70" y="360">2. Update Model Map (um/cm/sm)</text>
+      <text x="70" y="390">3. Generate Migrations (migrate-from-model)</text>
+      <text x="70" y="420">4. Apply Migrations (migrate)</text>
+      <text x="70" y="450">5. Seed Data (seed)</text>
+    </g>
+  </g>
+  
+  <!-- Development Cycle Section -->
+  <g>
+    <rect x="450" y="80" width="300" height="180" rx="10" ry="10" fill="url(#devGradient)" stroke="#2f3542" stroke-width="2"/>
+    <text x="600" y="110" font-family="Arial" font-size="18" font-weight="bold" text-anchor="middle" fill="white">Development Cycle</text>
+    
+    <!-- Steps -->
+    <g font-family="Arial" font-size="14" fill="white">
+      <text x="470" y="140">1. Write Code</text>
+      <text x="470" y="170">2. Run Tests (test)</text>
+      <text x="470" y="200">3. Run Dev Server (dev)</text>
+      <text x="470" y="230">4. Update API Docs (swagger)</text>
+      <text x="470" y="260">5. Code Review</text>
+    </g>
+  </g>
+  
+  <!-- Deployment Section -->
+  <g>
+    <rect x="450" y="300" width="300" height="150" rx="10" ry="10" fill="url(#deployGradient)" stroke="#2f3542" stroke-width="2"/>
+    <text x="600" y="330" font-family="Arial" font-size="18" font-weight="bold" text-anchor="middle" fill="white">Deployment</text>
+    
+    <!-- Steps -->
+    <g font-family="Arial" font-size="14" fill="white">
+      <text x="470" y="360">1. Build Docker Image (docker-rebuild)</text>
+      <text x="470" y="390">2. Deploy Services (docker-compose up -d)</text>
+      <text x="470" y="420">3. Monitor Logs (docker-logs)</text>
+      <text x="470" y="450">4. Production Ready</text>
+    </g>
+  </g>
+  
+  <!-- Connecting Arrows -->
+  <g stroke="#4a4a4a" stroke-width="2" marker-end="url(#arrow)">
+    <!-- Setup to Database -->
+    <path d="M 200 230 L 200 270" fill="none"/>
+    
+    <!-- Database to Development -->
+    <path d="M 350 360 L 450 220" fill="none"/>
+    
+    <!-- Development Cycle (internal) -->
+    <path d="M 600 260 C 670 260 670 140 600 140" fill="none"/>
+    
+    <!-- Development to Deployment -->
+    <path d="M 600 260 L 600 300" fill="none"/>
+  </g>
+  
+  <!-- Legend -->
+  <g transform="translate(300, 480)">
+    <rect x="0" y="0" width="200" height="100" rx="5" ry="5" fill="white" stroke="#2f3542" stroke-width="1"/>
+    <text x="100" y="30" font-family="Arial" font-size="16" font-weight="bold" text-anchor="middle">Legend</text>
+    
+    <circle cx="20" cy="50" r="5" fill="#4D7CFE"/>
+    <text x="30" y="55" font-family="Arial" font-size="14" dx="5">Setup Phase</text>
+    
+    <circle cx="20" cy="75" r="5" fill="#26de81"/>
+    <text x="30" y="80" font-family="Arial" font-size="14" dx="5">Database Phase</text>
+    
+    <circle cx="120" cy="50" r="5" fill="#fd9644"/>
+    <text x="130" y="55" font-family="Arial" font-size="14" dx="5">Development Phase</text>
+    
+    <circle cx="120" cy="75" r="5" fill="#a55eea"/>
+    <text x="130" y="80" font-family="Arial" font-size="14" dx="5">Deployment Phase</text>
+  </g>
+</svg> 

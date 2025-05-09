@@ -1,3 +1,4 @@
+// Package main provides a command line tool for updating the model map in cmd/db/main.go
 package main
 
 import (
@@ -14,15 +15,17 @@ import (
 	"strings"
 )
 
-// Command-line flags
+// Command line flags
 var (
 	cleanOnly bool
 	syncMode  bool
+	verbose   bool
 )
 
 func init() {
 	flag.BoolVar(&cleanOnly, "clean-only", false, "Only remove models that no longer exist without adding new ones")
 	flag.BoolVar(&syncMode, "sync", false, "Both add new models and remove models that no longer exist")
+	flag.BoolVar(&verbose, "v", false, "Enable verbose output")
 	flag.Parse()
 }
 

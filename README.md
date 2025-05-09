@@ -119,6 +119,57 @@ make env-info
 
 This will display the actual values that will be used by the application, either from your .env file or the default values.
 
+### Using as a Template Project
+
+This project is designed to be used as a template for new Go API projects. To set up a new project based on this template:
+
+1. Clone this repository
+```bash
+git clone https://github.com/linkeunid/go-api.git your-project-name
+cd your-project-name
+```
+
+2. Use the setup commands to rename the module and reset Git:
+
+```bash
+# Basic setup - just rename the module
+make setup module=github.com/yourusername/your-project
+
+# Setup with Git remote
+make setup-git module=github.com/yourusername/your-project remote=git@github.com:yourusername/your-project.git
+
+# Full setup - rename module, reset Git repository, and set remote
+make setup-full module=github.com/yourusername/your-project remote=git@github.com:yourusername/your-project.git
+```
+
+These commands will:
+- Update the module name in go.mod
+- Update all import paths in Go files throughout the project
+- Optionally reset the Git repository (remove .git folder and initialize a new one)
+- Optionally set a new Git remote URL
+
+The setup process provides a confirmation prompt to ensure you understand the changes that will be made, as these operations cannot be undone.
+
+3. After setup, update dependencies:
+```bash
+go mod tidy
+```
+
+For verbose output with detailed changes during setup, add the -v flag:
+```bash
+go run ./cmd/setup-project -module github.com/yourusername/your-project -v
+```
+
+Setup modes available:
+- Basic mode: Only updates module name and import paths
+- Git remote mode: Updates module name and sets Git remote URL
+- Full setup: Updates module name, resets Git repository, and sets Git remote URL
+
+Each mode is designed for different use cases:
+- Basic mode is useful when you want to keep Git history but change the module name
+- Git remote mode is useful when you want to keep Git history but change the remote repository
+- Full setup is useful when starting a completely new project from the template
+
 ### Running with Docker
 
 To run the application using Docker:
@@ -126,7 +177,7 @@ To run the application using Docker:
 ```bash
 # Build and start all services
 docker-compose up -d
-****
+
 # View logs
 docker-compose logs -f api
 
@@ -224,6 +275,33 @@ These commands help maintain the model map when adding or removing models:
 - `clean-model-map`: Removes models that no longer exist in the filesystem
 - `sync-model-map`: Both adds new models and removes deleted ones
 
+The model map system provides the following benefits:
+- Automatic detection of model structs with TableName() methods
+- Support for model registration without manual updates
+- Consistent table naming through the application
+- Simplified database operations through the cmd/db utility
+
+For example, when you create a new model:
+
+```go
+// internal/model/flower.go
+package model
+
+type Flower struct {
+    ID        uint   `gorm:"primaryKey"`
+    Name      string `gorm:"size:100;not null"`
+    Color     string `gorm:"size:50;not null"`
+    Fragrance string `gorm:"size:50"`
+}
+
+// TableName returns the table name for this model
+func (Flower) TableName() string {
+    return "flowers"
+}
+```
+
+You can then run `make um` to add it to the model map automatically.
+
 ### Generating Swagger Documentation
 
 The API includes Swagger documentation. To generate or update the documentation:
@@ -307,6 +385,14 @@ To deploy the application to Kubernetes:
 # Apply deployment configuration
 kubectl apply -f k8s/deployment.yaml
 ```
+
+## Development Flow
+
+The diagram below illustrates the development workflow for this project. It shows the four main phases: initial setup, database management, development cycle, and deployment. Each phase has specific commands (shown in parentheses) to help streamline the development process. This workflow is designed to make it easy to use this project as a template for new Go API projects while maintaining consistency in development practices.
+
+<div align="center">
+  <img src="docs/images/development-flow.svg" alt="Development Flow Diagram" width="800">
+</div>
 
 ## License
 

@@ -50,6 +50,11 @@ help:
 	@echo "  make fancy-ps       - Show fancy container status with colors and details 🌈"
 	@echo "  make docker-clean   - Remove all containers, volumes, and images"
 	@echo ""
+	@echo "Project Template Setup:"
+	@echo "  make setup module=MODULE_NAME - Setup project with new module name"
+	@echo "  make setup-git remote=GIT_URL - Setup project with new module name and git remote"
+	@echo "  make setup-full module=MODULE_NAME remote=GIT_URL - Full setup with new git repo"
+	@echo ""
 	@echo "Aliases:"
 	@echo "  make s              - Generate Swagger documentation"
 	@echo "  make su             - Run Swagger UI server"
@@ -290,17 +295,17 @@ truncate-all:
 # Update model map for database operations
 update-model-map:
 	@echo "🔄 Updating model map for database operations..."
-	@go run ./scripts/update_model_map.go
+	@go run ./cmd/model-mapper
 
 # Clean model map (remove models that no longer exist)
 clean-model-map:
 	@echo "🧹 Cleaning model map (removing non-existent models)..."
-	@go run ./scripts/update_model_map.go --clean-only
+	@go run ./cmd/model-mapper -clean-only
 
 # Sync model map (add new models and remove deleted ones)
 sync-model-map:
 	@echo "🔄 Syncing model map (adding new models and removing deleted ones)..."
-	@go run ./scripts/update_model_map.go --sync
+	@go run ./cmd/model-mapper -sync
 
 # Aliases for common commands
 s: swagger
@@ -424,4 +429,39 @@ env-info: ## Show environment variables used by the application
 	@echo "📝 Note: Values shown are actual values from .env or defaults if not defined"
 
 # Other aliases
-ei: env-info 
+ei: env-info
+
+# Setup project as template
+setup:
+	@if [ -z "$(module)" ]; then \
+		echo "❌ Module name is required. Usage: make setup module=github.com/yourusername/your-project"; \
+		exit 1; \
+	fi
+	@echo "🔄 Setting up project with new module name: $(module)..."
+	@go run ./cmd/setup-project -module $(module)
+
+# Setup project with Git remote
+setup-git:
+	@if [ -z "$(module)" ]; then \
+		echo "❌ Module name is required."; \
+		exit 1; \
+	fi
+	@if [ -z "$(remote)" ]; then \
+		echo "❌ Git remote URL is required."; \
+		exit 1; \
+	fi
+	@echo "🔄 Setting up project with new module name and Git remote..."
+	@go run ./cmd/setup-project -module $(module) -remote $(remote)
+
+# Full setup with module name, Git remote, and new Git repository
+setup-full:
+	@if [ -z "$(module)" ]; then \
+		echo "❌ Module name is required."; \
+		exit 1; \
+	fi
+	@if [ -z "$(remote)" ]; then \
+		echo "❌ Git remote URL is required."; \
+		exit 1; \
+	fi
+	@echo "🔄 Performing full project setup..."
+	@go run ./cmd/setup-project -module $(module) -remote $(remote) -reset-git -v 
