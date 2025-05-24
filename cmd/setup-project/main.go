@@ -65,6 +65,9 @@ func main() {
 	// Update docker-compose.yml with new service and container names
 	updateDockerCompose()
 
+	// Update Makefile with new service names
+	updateMakefile()
+
 	// Handle Git repository
 	handleGitRepository()
 
@@ -96,6 +99,7 @@ func confirmAction() bool {
 	fmt.Println("  - Update all import paths in Go files")
 	fmt.Printf("  - Update docker-compose.yml service names (api -> %s, mysql -> %s-mysql, redis -> %s-redis)\n", projectName, projectName, projectName)
 	fmt.Printf("  - Update docker-compose.yml container names accordingly\n")
+	fmt.Printf("  - Update Makefile service references to use new project names\n")
 
 	if resetGit {
 		fmt.Println("  - Reset Git repository (remove .git folder and initialize a new one)")
@@ -305,6 +309,83 @@ func updateDockerCompose() {
 		fmt.Printf("    - Volumes: mysql_data -> %s_mysql_data, redis_data -> %s_redis_data\n", projectName, projectName)
 	} else {
 		fmt.Printf("  ✓ Updated docker-compose.yml with project name: %s\n", projectName)
+	}
+}
+
+// updateMakefile updates service references in Makefile
+func updateMakefile() {
+	fmt.Println("🔧 Updating Makefile with new service names...")
+
+	makefilePath := "Makefile"
+
+	// Check if Makefile exists
+	if _, err := os.Stat(makefilePath); os.IsNotExist(err) {
+		if verbose {
+			fmt.Println("  - Skipped Makefile (file not found)")
+		}
+		return
+	}
+
+	// Read Makefile
+	content, err := os.ReadFile(makefilePath)
+	if err != nil {
+		fmt.Printf("❌ Error reading Makefile: %v\n", err)
+		return
+	}
+
+	projectName := extractProjectName(newModuleName)
+	originalContent := content
+
+	if verbose {
+		fmt.Printf("  - Project name extracted: %s\n", projectName)
+	}
+
+	// Update docker-compose service references in the docker-db target
+	// Replace: @docker compose -f docker-compose.yml up -d mysql redis
+	// With: @docker compose -f docker-compose.yml up -d {project}-mysql {project}-redis
+	oldPattern := `@docker compose -f docker-compose\.yml up -d mysql redis`
+	newCommand := "@docker compose -f docker-compose.yml up -d " + projectName + "-mysql " + projectName + "-redis"
+	content = regexp.MustCompile(oldPattern).ReplaceAll(content, []byte(newCommand))
+
+	// Update the comment and description for docker-db target
+	oldComment := `## Start only database containers \(MySQL and Redis\)`
+	newComment := "## Start only database containers (" + strings.Title(projectName) + " MySQL and Redis)"
+	content = regexp.MustCompile(oldComment).ReplaceAll(content, []byte(newComment))
+
+	// Update echo messages in docker-db target
+	content = regexp.MustCompile(`"🐳 Starting database containers\.\.\."`).ReplaceAll(content, []byte(`"🐳 Starting database containers..."`))
+	content = regexp.MustCompile(`"✅ Database containers started"`).ReplaceAll(content, []byte(`"✅ Database containers started"`))
+
+	// Update service status messages
+	oldMysqlMsg := `"   MySQL: \$\(call get_env,DB_HOST,localhost\):\$\(call get_env,DB_PORT,3306\)"`
+	newMysqlMsg := `"   ` + strings.Title(projectName) + ` MySQL: $(call get_env,DB_HOST,localhost):$(call get_env,DB_PORT,3306)"`
+	content = regexp.MustCompile(regexp.QuoteMeta(oldMysqlMsg)).ReplaceAll(content, []byte(newMysqlMsg))
+
+	oldRedisMsg := `"   Redis: \$\(call get_env,REDIS_HOST,localhost\):\$\(call get_env,REDIS_PORT,6379\)"`
+	newRedisMsg := `"   ` + strings.Title(projectName) + ` Redis: $(call get_env,REDIS_HOST,localhost):$(call get_env,REDIS_PORT,6379)"`
+	content = regexp.MustCompile(regexp.QuoteMeta(oldRedisMsg)).ReplaceAll(content, []byte(newRedisMsg))
+
+	// If content hasn't changed, skip writing
+	if bytes.Equal(originalContent, content) {
+		if verbose {
+			fmt.Println("  - Skipped Makefile (no changes needed)")
+		}
+		return
+	}
+
+	// Write updated content back to Makefile
+	err = os.WriteFile(makefilePath, content, 0644)
+	if err != nil {
+		fmt.Printf("❌ Error writing Makefile: %v\n", err)
+		return
+	}
+
+	if verbose {
+		fmt.Printf("  ✓ Updated Makefile with project name: %s\n", projectName)
+		fmt.Printf("    - Docker services: mysql -> %s-mysql, redis -> %s-redis\n", projectName, projectName)
+		fmt.Printf("    - Updated service status messages\n")
+	} else {
+		fmt.Printf("  ✓ Updated Makefile with project name: %s\n", projectName)
 	}
 }
 
