@@ -62,6 +62,9 @@ func main() {
 	// Update import paths in all Go files
 	updateImportPaths()
 
+	// Update docker-compose.yml with new service and container names
+	updateDockerCompose()
+
 	// Handle Git repository
 	handleGitRepository()
 
@@ -71,13 +74,28 @@ func main() {
 	fmt.Println("1. Review the changes to ensure everything was updated correctly")
 	fmt.Println("2. Run 'go mod tidy' to update dependencies")
 	fmt.Println("3. Build and test your project to verify everything works")
+	fmt.Println("4. Update your .env file if needed to match the new service names")
+}
+
+// extractProjectName extracts the project name from the module path
+// e.g., "github.com/yourusername/your-project" -> "your-project"
+func extractProjectName(modulePath string) string {
+	parts := strings.Split(modulePath, "/")
+	if len(parts) > 0 {
+		return parts[len(parts)-1]
+	}
+	return "go-api" // fallback
 }
 
 // confirmAction asks the user to confirm the operation
 func confirmAction() bool {
+	projectName := extractProjectName(newModuleName)
+
 	fmt.Println("⚠️ WARNING: This operation will:")
 	fmt.Printf("  - Rename module from %s to %s\n", currentModuleName, newModuleName)
 	fmt.Println("  - Update all import paths in Go files")
+	fmt.Printf("  - Update docker-compose.yml service names (api -> %s-api, mysql -> %s-mysql, redis -> %s-redis)\n", projectName, projectName, projectName)
+	fmt.Printf("  - Update docker-compose.yml container names accordingly\n")
 
 	if resetGit {
 		fmt.Println("  - Reset Git repository (remove .git folder and initialize a new one)")
@@ -190,6 +208,123 @@ func updateImportsInFile(filePath string) {
 
 	if verbose {
 		fmt.Printf("  ✓ Updated %s\n", filePath)
+	}
+}
+
+// updateDockerCompose updates service names and container names in docker-compose.yml
+func updateDockerCompose() {
+	fmt.Println("🐳 Updating docker-compose.yml with new service and container names...")
+
+	dockerComposePath := "docker-compose.yml"
+
+	// Check if docker-compose.yml exists
+	if _, err := os.Stat(dockerComposePath); os.IsNotExist(err) {
+		if verbose {
+			fmt.Println("  - Skipped docker-compose.yml (file not found)")
+		}
+		return
+	}
+
+	// Read docker-compose.yml file
+	content, err := os.ReadFile(dockerComposePath)
+	if err != nil {
+		fmt.Printf("❌ Error reading docker-compose.yml: %v\n", err)
+		return
+	}
+
+	projectName := extractProjectName(newModuleName)
+	originalContent := content
+
+	// Define service mapping: old name -> new name
+	serviceMap := map[string]string{
+		"api":   projectName + "-api",
+		"mysql": projectName + "-mysql",
+		"redis": projectName + "-redis",
+	}
+
+	// Define container mapping: old name -> new name
+	containerMap := map[string]string{
+		"go-api":        projectName + "-api",
+		"go-mysql":      projectName + "-mysql",
+		"linkeun-redis": projectName + "-redis",
+	}
+
+	// Update service names (as top-level services)
+	for oldService, newService := range serviceMap {
+		// Match service definitions (e.g., "  api:" or "services:\n  api:")
+		servicePattern := regexp.MustCompile(`(\s+)` + regexp.QuoteMeta(oldService) + `:`)
+		content = servicePattern.ReplaceAll(content, []byte(`$1`+newService+`:`))
+	}
+
+	// Update container names
+	for oldContainer, newContainer := range containerMap {
+		// Match container_name lines (e.g., "container_name: go-api")
+		containerPattern := regexp.MustCompile(`container_name:\s*` + regexp.QuoteMeta(oldContainer))
+		content = containerPattern.ReplaceAll(content, []byte(`container_name: `+newContainer))
+	}
+
+	// Update service references in depends_on and other cross-references
+	for oldService, newService := range serviceMap {
+		// Update depends_on references (e.g., "mysql:" under depends_on)
+		dependsPattern := regexp.MustCompile(`(\s+` + regexp.QuoteMeta(oldService) + `:)(\s+condition:)`)
+		content = dependsPattern.ReplaceAll(content, []byte(`      `+newService+`:$2`))
+
+		// Update service references in environment variables (e.g., REDIS_HOST=redis)
+		envPattern := regexp.MustCompile(`(=)` + regexp.QuoteMeta(oldService) + `(\s|$)`)
+		content = envPattern.ReplaceAll(content, []byte(`$1`+newService+`$2`))
+	}
+
+	// Update network name
+	oldNetworkName := "linkeun-network"
+	newNetworkName := projectName + "-network"
+
+	// Update network definition
+	networkDefPattern := regexp.MustCompile(`(\s+)` + regexp.QuoteMeta(oldNetworkName) + `:`)
+	content = networkDefPattern.ReplaceAll(content, []byte(`$1`+newNetworkName+`:`))
+
+	// Update network references
+	networkRefPattern := regexp.MustCompile(`- ` + regexp.QuoteMeta(oldNetworkName))
+	content = networkRefPattern.ReplaceAll(content, []byte(`- `+newNetworkName))
+
+	// Update volume names to include project name
+	volumeMap := map[string]string{
+		"mysql_data": projectName + "_mysql_data",
+		"redis_data": projectName + "_redis_data",
+	}
+
+	for oldVolume, newVolume := range volumeMap {
+		// Update volume definitions
+		volumeDefPattern := regexp.MustCompile(`(\s+)` + regexp.QuoteMeta(oldVolume) + `:`)
+		content = volumeDefPattern.ReplaceAll(content, []byte(`$1`+newVolume+`:`))
+
+		// Update volume references
+		volumeRefPattern := regexp.MustCompile(`- ` + regexp.QuoteMeta(oldVolume) + `:`)
+		content = volumeRefPattern.ReplaceAll(content, []byte(`- `+newVolume+`:`))
+	}
+
+	// If content hasn't changed, skip writing
+	if bytes.Equal(originalContent, content) {
+		if verbose {
+			fmt.Println("  - Skipped docker-compose.yml (no changes needed)")
+		}
+		return
+	}
+
+	// Write updated content back to docker-compose.yml
+	err = os.WriteFile(dockerComposePath, content, 0644)
+	if err != nil {
+		fmt.Printf("❌ Error writing docker-compose.yml: %v\n", err)
+		return
+	}
+
+	if verbose {
+		fmt.Printf("  ✓ Updated docker-compose.yml with project name: %s\n", projectName)
+		fmt.Printf("    - Services: api -> %s-api, mysql -> %s-mysql, redis -> %s-redis\n", projectName, projectName, projectName)
+		fmt.Printf("    - Containers: go-api -> %s-api, go-mysql -> %s-mysql, linkeun-redis -> %s-redis\n", projectName, projectName, projectName)
+		fmt.Printf("    - Network: linkeun-network -> %s-network\n", projectName)
+		fmt.Printf("    - Volumes: mysql_data -> %s_mysql_data, redis_data -> %s_redis_data\n", projectName, projectName)
+	} else {
+		fmt.Printf("  ✓ Updated docker-compose.yml with project name: %s\n", projectName)
 	}
 }
 

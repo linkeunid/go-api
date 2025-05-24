@@ -887,6 +887,76 @@ make setup-f module=github.com/yourusername/your-project \
 go mod tidy
 ```
 
+#### What the Setup Tool Updates
+
+The setup-project tool automatically updates the following components to match your new project name:
+
+**📝 Go Module & Imports:**
+- Updates `go.mod` module name
+- Updates all import paths in Go files
+
+**🐳 Docker Configuration:**
+- **Service Names**: `api` → `your-project-api`, `mysql` → `your-project-mysql`, `redis` → `your-project-redis`
+- **Container Names**: `go-api` → `your-project-api`, `go-mysql` → `your-project-mysql`, `linkeun-redis` → `your-project-redis`
+- **Network**: `linkeun-network` → `your-project-network`
+- **Volumes**: `mysql_data` → `your-project_mysql_data`, `redis_data` → `your-project_redis_data`
+- **Service References**: Updates `depends_on` and environment variable references
+
+**🔧 Git Repository:**
+- Optionally resets Git history and creates a new repository
+- Sets up new Git remote origin
+
+#### Example Transformation
+
+When you run:
+```bash
+make setup-f module=github.com/mycompany/awesome-api \
+  remote=git@github.com:mycompany/awesome-api.git
+```
+
+**Before:**
+```yaml
+services:
+  api:
+    container_name: go-api
+    depends_on:
+      mysql:
+        condition: service_healthy
+  mysql:
+    container_name: go-mysql
+  redis:
+    container_name: linkeun-redis
+networks:
+  linkeun-network:
+volumes:
+  mysql_data:
+  redis_data:
+```
+
+**After:**
+```yaml
+services:
+  awesome-api-api:
+    container_name: awesome-api-api
+    depends_on:
+      awesome-api-mysql:
+        condition: service_healthy
+  awesome-api-mysql:
+    container_name: awesome-api-mysql
+  awesome-api-redis:
+    container_name: awesome-api-redis
+networks:
+  awesome-api-network:
+volumes:
+  awesome-api_mysql_data:
+  awesome-api_redis_data:
+```
+
+**⚠️ Important Notes:**
+- This operation cannot be undone - make sure to backup your project first
+- After running the setup, you may need to update your `.env` file if you have custom service configurations
+- The tool will show you a detailed preview of all changes before proceeding
+
 </details>
 
 <details>
