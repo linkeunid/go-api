@@ -15,7 +15,6 @@ import (
 	"github.com/golang-migrate/migrate/v4"
 	mysqldriver "github.com/golang-migrate/migrate/v4/database/mysql"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
-	"github.com/joho/godotenv"
 	"github.com/linkeunid/go-api/internal/model"
 	"github.com/linkeunid/go-api/pkg/config"
 	gormMysql "gorm.io/driver/mysql"
@@ -142,8 +141,6 @@ func NewMigrationManager() (*MigrationManager, error) {
 }
 
 func main() {
-	loadEnv()
-
 	// Parse command-line flags
 	var (
 		createCmd  = flag.Bool("create", false, "Create a new migration")
@@ -261,18 +258,18 @@ func createModelMigration(manager *MigrationManager, modelName, migrationName st
 	fmt.Printf("Created model-based migration files:\n  %s\n  %s\n", upFile, downFile)
 }
 
-// createEmptyMigration creates a new empty migration file
+// createEmptyMigration creates empty migration files
 func createEmptyMigration(name string) {
-	timestamp := time.Now().Unix()
-	version := strconv.FormatInt(timestamp, 10)
-	safeVersion := fmt.Sprintf("%s_%s", version, name)
+	timestamp := time.Now().Format("20060102150405")
+	filename := fmt.Sprintf("%s_%s", timestamp, name)
 
-	if err := os.MkdirAll(migrationsPath, os.ModePerm); err != nil {
+	upFile := filepath.Join(migrationsPath, fmt.Sprintf("%s.up.sql", filename))
+	downFile := filepath.Join(migrationsPath, fmt.Sprintf("%s.down.sql", filename))
+
+	// Create migrations directory if it doesn't exist
+	if err := os.MkdirAll(migrationsPath, 0755); err != nil {
 		log.Fatalf("Failed to create migrations directory: %v", err)
 	}
-
-	upFile := filepath.Join(migrationsPath, fmt.Sprintf("%s.up.sql", safeVersion))
-	downFile := filepath.Join(migrationsPath, fmt.Sprintf("%s.down.sql", safeVersion))
 
 	upTemplate := `-- Migration Up
 -- SQL in section 'Up' is executed when this migration is applied
@@ -293,18 +290,6 @@ func createEmptyMigration(name string) {
 	}
 
 	fmt.Printf("Created migration files:\n  %s\n  %s\n", upFile, downFile)
-}
-
-// loadEnv loads environment variables from .env file
-func loadEnv() {
-	env := os.Getenv("APP_ENV")
-	if env == "" || env == "development" {
-		if err := godotenv.Load(); err != nil {
-			fmt.Println("Warning: .env file not found, using environment variables")
-		} else {
-			fmt.Println("Successfully loaded .env file")
-		}
-	}
 }
 
 // runMigrations executes migration operations

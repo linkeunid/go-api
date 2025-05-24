@@ -4,17 +4,15 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"strings"
 	"time"
 
-	"github.com/joho/godotenv"
 	"github.com/linkeunid/go-api/pkg/auth"
 	"github.com/linkeunid/go-api/pkg/config"
 )
 
 func main() {
-	// Load .env file if it exists
-	_ = godotenv.Load()
+	// Load configuration first
+	cfg := config.LoadConfig()
 
 	// Define command-line flags
 	var (
@@ -32,13 +30,13 @@ func main() {
 	flag.StringVar(&username, "username", "testuser", "Username")
 	flag.StringVar(&role, "role", "user", "User role (user, admin, etc.)")
 	flag.StringVar(&email, "email", "test@example.com", "User email")
-	flag.StringVar(&secret, "secret", os.Getenv("JWT_SECRET"), "JWT secret key (defaults to JWT_SECRET env var)")
-	flag.DurationVar(&expire, "expire", 24*time.Hour, "Token expiration duration (e.g., 24h, 30m)")
+	flag.StringVar(&secret, "secret", cfg.Auth.JWTSecret, "JWT secret key (defaults to JWT_SECRET env var)")
+	flag.DurationVar(&expire, "expire", cfg.Auth.JWTExpiration, "Token expiration duration (e.g., 24h, 30m)")
 	flag.BoolVar(&force, "force", false, "Force token generation even in production (use with caution)")
 	flag.Parse()
 
 	// Check if the environment is development or test
-	env := strings.ToLower(os.Getenv("APP_ENV"))
+	env := cfg.Environment
 	if env != "development" && env != "test" && env != "" && !force {
 		fmt.Println("❌ Error: Token generation is only available in development and test environments.")
 		fmt.Printf("Current environment: %s\n", env)
@@ -60,7 +58,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Create a minimal auth config
+	// Create auth config with custom values if provided
 	authConfig := &config.AuthConfig{
 		Enabled:       true,
 		JWTSecret:     secret,
@@ -94,9 +92,9 @@ func main() {
 	fmt.Printf("  Environment: %s\n", env)
 	fmt.Println("\nUsage Examples:")
 	fmt.Println("  cURL:")
-	fmt.Printf("    curl -H \"Authorization: Bearer %s\" http://localhost:4445/api/v1/protected\n", token)
+	fmt.Printf("    curl -H \"Authorization: Bearer %s\" http://localhost:%d/api/v1/protected\n", token, cfg.Server.Port)
 	fmt.Println("\n  JavaScript Fetch:")
-	fmt.Printf("    fetch('http://localhost:4445/api/v1/protected', {\n      headers: {\n        'Authorization': 'Bearer %s'\n      }\n    })\n", token)
+	fmt.Printf("    fetch('http://localhost:%d/api/v1/protected', {\n      headers: {\n        'Authorization': 'Bearer %s'\n      }\n    })\n", cfg.Server.Port, token)
 
 	// Add information about available protected endpoints
 	fmt.Println("\nAvailable Protected Endpoints:")
