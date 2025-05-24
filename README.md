@@ -2,10 +2,10 @@
 
 A comprehensive Go API project with RESTful endpoints, JWT authentication, caching, and database integration.
 
-## Table of Contents
+<details>
+<summary>📋 Table of Contents</summary>
 
 - [Linkeun Go API](#linkeun-go-api)
-  - [Table of Contents](#table-of-contents)
   - [Features](#features)
   - [Getting Started](#getting-started)
     - [Prerequisites](#prerequisites)
@@ -78,6 +78,8 @@ A comprehensive Go API project with RESTful endpoints, JWT authentication, cachi
     - [Testing Strategy](#testing-strategy)
     - [Extending Tests](#extending-tests)
   - [License](#license)
+
+</details>
 
 ## Features
 
@@ -180,6 +182,9 @@ go build -o bin/api ./cmd/api
 ./bin/api
 ```
 
+<details>
+<summary>⚡ Command Aliases</summary>
+
 ### Command Aliases
 
 The project includes numerous command aliases to make development more efficient. These aliases are shortcuts for commonly used commands.
@@ -264,6 +269,8 @@ make gta    # Admin token
 make gtu id=123  # Token for specific user ID
 ```
 
+</details>
+
 ### API Endpoints
 
 #### Animals Resource
@@ -284,6 +291,9 @@ For paginated endpoints:
 - `limit`: Items per page (default: 10, max: 100)
 - `sort`: Sort field (e.g., id, name, created_at)
 - `direction`: Sort direction (asc, desc)
+
+<details>
+<summary>🏗️ Project Structure</summary>
 
 ## Project Structure
 
@@ -313,6 +323,11 @@ For paginated endpoints:
 ├── go.mod                    # Go module definition
 └── README.md                 # Documentation
 ```
+
+</details>
+
+<details>
+<summary>🔐 Authentication</summary>
 
 ## Authentication
 
@@ -486,6 +501,11 @@ This implementation follows these security practices:
 
 For more details, see the [OWASP JWT Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/JSON_Web_Token_for_Java_Cheat_Sheet.html).
 
+</details>
+
+<details>
+<summary>🚀 Caching System</summary>
+
 ## Caching System
 
 The API implements a Redis-based caching system to improve performance and reduce database load.
@@ -561,6 +581,11 @@ For optimal performance:
    - Use password authentication
    - Consider network security measures
    - Rotate credentials periodically
+
+</details>
+
+<details>
+<summary>📝 Logging System</summary>
 
 ## Logging System
 
@@ -681,6 +706,11 @@ For optimal logging:
    - Set higher log levels (`warn` or `error`) to reduce disk I/O
    - Ensure log directories have appropriate permissions
 
+</details>
+
+<details>
+<summary>💾 Database Operations</summary>
+
 ## Database Operations
 
 ### Migrations
@@ -743,6 +773,11 @@ make sync-model-map
 # or
 make sm
 ```
+
+</details>
+
+<details>
+<summary>🛠️ Development</summary>
 
 ## Development
 
@@ -851,6 +886,11 @@ make setup-f module=github.com/yourusername/your-project \
 # Update dependencies
 go mod tidy
 ```
+
+</details>
+
+<details>
+<summary>🚀 Deployment</summary>
 
 ## Deployment
 
@@ -988,6 +1028,11 @@ For production deployments, consider:
 5. Configuring a proper Ingress controller with TLS
 6. Implementing proper monitoring and alerting
 
+</details>
+
+<details>
+<summary>🧪 API Testing</summary>
+
 ## API Testing
 
 The project includes comprehensive unit tests for the REST API components, focusing on:
@@ -1043,6 +1088,8 @@ When adding new API endpoints, follow the same pattern to extend the tests:
 2. Create service tests for business logic
 3. Create repository tests or mocks for data access
 4. Run tests to ensure coverage is maintained
+
+</details>
 
 ## License
 
