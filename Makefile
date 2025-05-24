@@ -24,6 +24,13 @@ define ask_confirmation
 	fi
 endef
 
+# Helper function for printing help lines with consistent formatting
+# Usage: $(call print_help_line, command, description)
+# Example: $(call print_help_line, make dev, 🔄 Start development server with hot reload and Redis cache flush)
+define print_help_line
+	@printf "  %-30s - %s\n" "$(1)" "$(2)"
+endef
+
 # Color codes for echo statements
 GREEN := 32
 YELLOW := 33
@@ -43,107 +50,107 @@ endef
 help:
 	$(call fancy_header,$(MAGENTA),Linkeun Go API - Command Reference)
 	@printf "\033[1;36m✨ Build & Run\033[0m\n"
-	@printf "  \033[1mmake dev\033[0m            - 🔄 Run development server with hot reload\n"
-	@printf "  \033[1mmake run\033[0m            - 🚀 Run the application\n"
-	@printf "  \033[1mmake build\033[0m          - 🔨 Build the application\n"
+	$(call print_help_line, make dev, 🔄 Start development server with hot reload and Redis cache flush)
+	$(call print_help_line, make run, 🚀 Start the API application in production mode)
+	$(call print_help_line, make build, 🔨 Compile Go source code into executable binary)
 	@printf "\n"
 	@printf "\033[1;36m🐳 Docker Commands\033[0m\n"
-	@printf "  \033[1mmake docker-up\033[0m      - 🚀 Start all containers\n"
-	@printf "  \033[1mmake docker-down\033[0m    - 🛑 Stop all containers\n"
-	@printf "  \033[1mmake docker-db\033[0m      - 🗃️ Start only database containers (MySQL and Redis)\n"
-	@printf "  \033[1mmake docker-rebuild\033[0m - 🔄 Rebuild and restart all containers\n"
-	@printf "  \033[1mmake fancy-ps\033[0m       - 🌈 Show fancy container status with colors and details\n"
-	@printf "  \033[1mmake docker-logs\033[0m    - 📋 View logs from all containers\n"
-	@printf "  \033[1mmake docker-ps\033[0m      - 📊 List running containers\n"
-	@printf "  \033[1mmake docker-clean\033[0m   - 🧹 Remove all containers, volumes, and images\n"
+	$(call print_help_line, make docker-up, 🚀 Start all containers defined in docker-compose.yml)
+	$(call print_help_line, make docker-down, 🛑 Stop and remove all running containers)
+	$(call print_help_line, make docker-db, 🗃️ Start only database containers (MySQL and Redis))
+	$(call print_help_line, make docker-rebuild, 🔄 Rebuild Docker images and restart all containers)
+	$(call print_help_line, make fancy-ps, 🌈 Display detailed container status with resource usage and colors)
+	$(call print_help_line, make docker-logs, 📋 Stream real-time logs from all running containers)
+	$(call print_help_line, make docker-ps, 📊 List currently running Docker containers)
+	$(call print_help_line, make docker-clean, 🧹 Remove project containers and volumes with confirmation)
 	@printf "\n"
 	@printf "\033[1;36m🗃️ Database Migrations\033[0m\n"
-	@printf "  \033[1mmake migrate\033[0m        - 📊 Run database migrations\n"
-	@printf "  \033[1mmake migrate-status\033[0m - 📊 Show current migration status\n"
-	@printf "  \033[1mmake migrate-down\033[0m   - ⏮️ Roll back the last migration\n"
-	@printf "  \033[1mmake migrate-create name=NAME\033[0m - 📝 Create a new migration\n"
-	@printf "  \033[1mmake migrate-from-model model=NAME\033[0m - 🔄 Create a migration from a model\n"
-	@printf "  \033[1mmake migrate-all-models\033[0m - 🚀 Create migrations from all available models (skip existing)\n"
-	@printf "  \033[1mmake migrate-list-models\033[0m - 📋 List available models for migrations\n"
-	@printf "  \033[1mmake migrate-reset\033[0m  - 🔄 Reset all migrations\n"
+	$(call print_help_line, make migrate, 📊 Execute all pending database schema migrations)
+	$(call print_help_line, make migrate-status, 📊 Display current migration version and pending migrations)
+	$(call print_help_line, make migrate-down, ⏮️ Rollback the most recent migration with confirmation)
+	$(call print_help_line, make migrate-create name=NAME, 📝 Generate new empty migration files with timestamp)
+	$(call print_help_line, make migrate-from-model model=NAME, 🔄 Auto-generate migration from existing model structure)
+	$(call print_help_line, make migrate-all-models, 🚀 Create migrations from all available models (skip existing))
+	$(call print_help_line, make migrate-list-models, 📋 Show all models available for migration generation)
+	$(call print_help_line, make migrate-reset, 🔄 Rollback all migrations to version 0 with confirmation)
 	@printf "\n"
 	@printf "\033[1;36m🌱 Database Seeders\033[0m\n"
-	@printf "  \033[1mmake seed\033[0m           - 🌱 Run all database seeders\n"
-	@printf "  \033[1mmake seed-count\033[0m     - 🔢 Run seeders with custom count (e.g., make seed-count count=100)\n"
-	@printf "  \033[1mmake seed-animal\033[0m    - 🐾 Run only animal seeder\n"
-	@printf "  \033[1mmake seed-flower\033[0m    - 🌸 Run only flower seeder\n"
+	$(call print_help_line, make seed, 🌱 Populate database with test data from all available seeders)
+	$(call print_help_line, make seed-count, 🔢 Run all seeders with custom record count (e.g., make seed-count count=100))
+	$(call print_help_line, make seed-animal, 🐾 Populate database with animal test data only)
+	$(call print_help_line, make seed-flower, 🌸 Populate database with flower test data only)
 	@printf "\n"
 	@printf "\033[1;36m💾 Database Operations\033[0m\n"
-	@printf "  \033[1mmake update-model-map\033[0m - 🔄 Update model map for database operations\n"
-	@printf "  \033[1mmake sync-model-map\033[0m - 🔄 Sync model map by adding new models and removing deleted ones\n"
-	@printf "  \033[1mmake clean-model-map\033[0m - 🧹 Remove models from the map that no longer exist\n"
-	@printf "  \033[1mmake truncate model=NAME\033[0m - 🗑️ Truncate specific table with confirmation\n"
-	@printf "  \033[1mmake truncate-all\033[0m   - 🧹 Truncate all tables with confirmation\n"
+	$(call print_help_line, make update-model-map, 🔄 Scan and register new Go models for database operations)
+	$(call print_help_line, make sync-model-map, 🔄 Add new models and remove deleted ones from the registry)
+	$(call print_help_line, make clean-model-map, 🧹 Remove models from registry that no longer exist in codebase)
+	$(call print_help_line, make truncate model=NAME, 🗑️ Empty specific database table after user confirmation)
+	$(call print_help_line, make truncate-all, 🧹 Empty all database tables after double confirmation)
 	@printf "\n"
 	@printf "\033[1;36m🧪 Testing & Quality\033[0m\n"
-	@printf "  \033[1mmake test\033[0m           - 🧪 Run tests\n"
-	@printf "  \033[1mmake fmt\033[0m            - ✨ Format code\n"
-	@printf "  \033[1mmake lint\033[0m           - 🔍 Lint code\n"
-	@printf "  \033[1mmake test-coverage\033[0m  - 📊 Run tests with coverage report\n"
-	@printf "  \033[1mmake test-log-rotation\033[0m - 📋 Test log file rotation functionality\n"
-	@printf "  \033[1mmake mocks\033[0m          - 🧩 Generate mocks for testing\n"
+	$(call print_help_line, make test, 🧪 Execute all unit and integration tests with verbose output)
+	$(call print_help_line, make fmt, ✨ Format all Go source code using go fmt)
+	$(call print_help_line, make lint, 🔍 Run golangci-lint to check code quality and style)
+	$(call print_help_line, make test-coverage, 📊 Run tests and generate detailed coverage report)
+	$(call print_help_line, make test-log-rotation, 📋 Test application log file rotation functionality)
+	$(call print_help_line, make mocks, 🧩 Generate mock interfaces for unit testing with mockgen)
 	@printf "\n"
 	@printf "\033[1;36m📚 Documentation\033[0m\n"
-	@printf "  \033[1mmake swagger\033[0m        - 📝 Generate Swagger documentation\n"
-	@printf "  \033[1mmake swagger-ui\033[0m     - 🌐 Run Swagger UI server\n"
+	$(call print_help_line, make swagger, 📝 Generate OpenAPI/Swagger documentation from code annotations)
+	$(call print_help_line, make swagger-ui, 🌐 Start interactive Swagger UI server on localhost:8081)
 	@printf "\n"
 	@printf "\033[1;36m🔐 JWT Authentication\033[0m\n"
-	@printf "  \033[1mmake generate-token\033[0m      - 🔑 Generate JWT token with default settings\n"
-	@printf "  \033[1mmake generate-token-user id=123\033[0m - 👤 Generate JWT token for specific user ID\n"
-	@printf "  \033[1mmake generate-token-admin\033[0m - 👑 Generate JWT token with admin role\n"
-	@printf "  \033[1mmake generate-token-force\033[0m - ⚡ Force token generation (works in any environment)\n"
+	$(call print_help_line, make generate-token, 🔑 Generate JWT token with default user settings (dev/test only))
+	$(call print_help_line, make generate-token-user id=123, 👤 Generate JWT token for specific user ID (dev/test only))
+	$(call print_help_line, make generate-token-admin, 👑 Generate JWT token with administrator privileges (dev/test only))
+	$(call print_help_line, make generate-token-force, ⚡ Force JWT token generation bypassing environment restrictions)
 	@printf "\n"
 	@printf "\033[1;36m🔧 Project Management\033[0m\n"
-	@printf "  \033[1mmake init\033[0m           - 🔧 Initialize the project\n"
-	@printf "  \033[1mmake env-info\033[0m       - ℹ️ Show environment variables used by the application\n"
-	@printf "  \033[1mmake clean\033[0m          - 🧹 Clean build artifacts (with confirmation)\n"
-	@printf "  \033[1mmake clean-all\033[0m      - 🧹 Clean build artifacts (no confirmation, for CI/scripts)\n"
-	@printf "  \033[1mmake clean-logs\033[0m     - 🧹 Clean only log files\n"
-	@printf "  \033[1mmake flush-redis\033[0m    - 🧹 Explicitly flush Redis cache\n"
+	$(call print_help_line, make init, 🔧 Initialize project dependencies and generate documentation)
+	$(call print_help_line, make env-info, ℹ️ Display all environment variables used by the application)
+	$(call print_help_line, make clean, 🧹 Remove build artifacts and logs with user confirmation)
+	$(call print_help_line, make clean-all, 🧹 Remove build artifacts and logs without confirmation (CI/automation))
+	$(call print_help_line, make clean-logs, 🧹 Remove application log files only with confirmation)
+	$(call print_help_line, make flush-redis, 🧹 Clear Redis cache database using configured credentials)
 	@printf "\n"
 	@printf "\033[1;36m🔧 Project Template Setup\033[0m\n"
-	@printf "  \033[1mmake setup module=MODULE_NAME\033[0m - 🛠️ Setup project with new module name\n"
-	@printf "  \033[1mmake setup-git remote=GIT_URL\033[0m - 🔄 Setup project with new module name and git remote\n"
-	@printf "  \033[1mmake setup-full module=MODULE_NAME remote=GIT_URL\033[0m - 🚀 Full setup with new git repo\n"
+	$(call print_help_line, make setup module=MODULE_NAME, 🛠️ Rename Go module and update all import paths throughout codebase)
+	$(call print_help_line, make setup-git remote=GIT_URL, 🔄 Setup project with new module name and configure Git remote repository)
+	$(call print_help_line, make setup-full module=MODULE_NAME remote=GIT_URL, 🚀 Complete project setup with module rename and fresh Git repository)
 	@printf "\n"
 	@printf "\033[1;36m⚡ Command Aliases\033[0m\n"
-	@printf "  \033[1mmake d\033[0m              - ↩️ Alias for 'dev'\n"
-	@printf "  \033[1mmake r\033[0m              - ↩️ Alias for 'run'\n"
-	@printf "  \033[1mmake s\033[0m              - ↩️ Alias for 'swagger'\n"
-	@printf "  \033[1mmake su\033[0m             - ↩️ Alias for 'swagger-ui'\n"
-	@printf "  \033[1mmake t\033[0m              - ↩️ Alias for 'test'\n"
-	@printf "  \033[1mmake l\033[0m              - ↩️ Alias for 'lint'\n"
-	@printf "  \033[1mmake sd\033[0m             - ↩️ Alias for 'seed'\n"
-	@printf "  \033[1mmake tr\033[0m             - ↩️ Alias for 'truncate'\n"
-	@printf "  \033[1mmake tra\033[0m            - ↩️ Alias for 'truncate-all'\n"
-	@printf "  \033[1mmake mam\033[0m            - ↩️ Alias for 'migrate-all-models'\n"
-	@printf "  \033[1mmake um\033[0m             - ↩️ Alias for 'update-model-map'\n"
-	@printf "  \033[1mmake cm\033[0m             - ↩️ Alias for 'clean-model-map'\n"
-	@printf "  \033[1mmake sm\033[0m             - ↩️ Alias for 'sync-model-map'\n"
-	@printf "  \033[1mmake smm\033[0m            - ↩️ Alias for 'sync-model-map'\n"
-	@printf "  \033[1mmake fr\033[0m             - ↩️ Alias for 'flush-redis'\n"
-	@printf "  \033[1mmake gt\033[0m             - ↩️ Alias for 'generate-token'\n"
-	@printf "  \033[1mmake gtu\033[0m            - ↩️ Alias for 'generate-token-user'\n"
-	@printf "  \033[1mmake gta\033[0m            - ↩️ Alias for 'generate-token-admin'\n"
-	@printf "  \033[1mmake gtf\033[0m            - ↩️ Alias for 'generate-token-force'\n"
-	@printf "  \033[1mmake tlr\033[0m            - ↩️ Alias for 'test-log-rotation'\n"
-	@printf "  \033[1mmake cl\033[0m             - ↩️ Alias for 'clean-logs'\n"
-	@printf "  \033[1mmake ca\033[0m             - ↩️ Alias for 'clean-all'\n"
-	@printf "  \033[1mmake setup-s\033[0m        - ↩️ Alias for 'setup'\n"
-	@printf "  \033[1mmake setup-g\033[0m        - ↩️ Alias for 'setup-git'\n"
-	@printf "  \033[1mmake setup-f\033[0m        - ↩️ Alias for 'setup-full'\n"
-	@printf "  \033[1mmake ddb\033[0m            - ↩️ Alias for 'docker-db'\n"
-	@printf "  \033[1mmake dup\033[0m            - ↩️ Alias for 'docker-up'\n"
-	@printf "  \033[1mmake ddown\033[0m          - ↩️ Alias for 'docker-down'\n"
-	@printf "  \033[1mmake dps\033[0m            - ↩️ Alias for 'docker-ps'\n"
-	@printf "  \033[1mmake dlogs\033[0m          - ↩️ Alias for 'docker-logs'\n"
-	@printf "  \033[1mmake fps\033[0m            - ↩️ Alias for 'fancy-ps'\n"
-	@printf "  \033[1mmake ei\033[0m             - ↩️ Alias for 'env-info'\n"
+	$(call print_help_line, make d, ↩️ Alias for 'dev')
+	$(call print_help_line, make r, ↩️ Alias for 'run')
+	$(call print_help_line, make s, ↩️ Alias for 'swagger')
+	$(call print_help_line, make su, ↩️ Alias for 'swagger-ui')
+	$(call print_help_line, make t, ↩️ Alias for 'test')
+	$(call print_help_line, make l, ↩️ Alias for 'lint')
+	$(call print_help_line, make sd, ↩️ Alias for 'seed')
+	$(call print_help_line, make tr, ↩️ Alias for 'truncate')
+	$(call print_help_line, make tra, ↩️ Alias for 'truncate-all')
+	$(call print_help_line, make mam, ↩️ Alias for 'migrate-all-models')
+	$(call print_help_line, make um, ↩️ Alias for 'update-model-map')
+	$(call print_help_line, make cm, ↩️ Alias for 'clean-model-map')
+	$(call print_help_line, make sm, ↩️ Alias for 'sync-model-map')
+	$(call print_help_line, make smm, ↩️ Alias for 'sync-model-map')
+	$(call print_help_line, make fr, ↩️ Alias for 'flush-redis')
+	$(call print_help_line, make gt, ↩️ Alias for 'generate-token')
+	$(call print_help_line, make gtu, ↩️ Alias for 'generate-token-user')
+	$(call print_help_line, make gta, ↩️ Alias for 'generate-token-admin')
+	$(call print_help_line, make gtf, ↩️ Alias for 'generate-token-force')
+	$(call print_help_line, make tlr, ↩️ Alias for 'test-log-rotation')
+	$(call print_help_line, make cl, ↩️ Alias for 'clean-logs')
+	$(call print_help_line, make ca, ↩️ Alias for 'clean-all')
+	$(call print_help_line, make setup-s, ↩️ Alias for 'setup')
+	$(call print_help_line, make setup-g, ↩️ Alias for 'setup-git')
+	$(call print_help_line, make setup-f, ↩️ Alias for 'setup-full')
+	$(call print_help_line, make ddb, ↩️ Alias for 'docker-db')
+	$(call print_help_line, make dup, ↩️ Alias for 'docker-up')
+	$(call print_help_line, make ddown, ↩️ Alias for 'docker-down')
+	$(call print_help_line, make dps, ↩️ Alias for 'docker-ps')
+	$(call print_help_line, make dlogs, ↩️ Alias for 'docker-logs')
+	$(call print_help_line, make fps, ↩️ Alias for 'fancy-ps')
+	$(call print_help_line, make ei, ↩️ Alias for 'env-info')
 
 # Helper function to get env variable with default value
 # Usage: $(call get_env,VARIABLE_NAME,DEFAULT_VALUE)

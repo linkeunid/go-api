@@ -60,6 +60,8 @@ A comprehensive Go API project with RESTful endpoints, JWT authentication, cachi
     - [Swagger Documentation](#swagger-documentation)
     - [Development Workflow](#development-workflow)
     - [Using as a Template](#using-as-a-template)
+      - [What the Setup Tool Updates](#what-the-setup-tool-updates)
+      - [Example Transformation](#example-transformation)
   - [Deployment](#deployment)
     - [Docker](#docker)
     - [Kubernetes](#kubernetes)
@@ -267,9 +269,25 @@ make ddown  # Stop all containers
 
 Generate a JWT token for testing:
 ```bash
-make gt     # Standard token
-make gta    # Admin token
-make gtu id=123  # Token for specific user ID
+# Generate a token with default values
+make gt
+# or
+make generate-token
+
+# Generate an admin token
+make gta
+# or
+make generate-token-admin
+
+# Generate a token for a specific user ID
+make gtu id=123
+# or
+make generate-token-user id=123
+
+# Force token generation in any environment (for emergencies)
+make gtf
+# or
+make generate-token-force
 ```
 
 Work with database migrations:
