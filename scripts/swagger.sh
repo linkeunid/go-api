@@ -12,7 +12,10 @@ NC='\033[0m' # No Color
 
 # Load environment variables from .env if it exists
 if [ -f .env ]; then
-  export $(grep -v '^#' .env | xargs)
+  # Export only valid environment variables, stripping inline comments and empty lines
+  set -a # Enable auto-export of variables
+  source <(grep -v '^#' .env | grep -E '^[A-Z_][A-Z0-9_]*=' | sed 's/#.*//' | sed 's/^[[:space:]]*//' | sed '/^$/d')
+  set +a # Disable auto-export
   echo -e "${CYAN}🔍 Found .env file, using environment variables...${NC}"
 fi
 
