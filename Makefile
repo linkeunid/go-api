@@ -664,11 +664,11 @@ fancy-ps: ## Show fancy container status with colors and details
 	@echo ""
 
 docker-clean: ## Remove containers and volumes defined in docker-compose.yml only (keep images)
-        @if $(call ask_confirmation, This will remove containers and volumes from docker-compose.yml!, Cleaning project Docker resources); then \
-                docker compose -f docker-compose.yml stop || true; \
-                docker compose -f docker-compose.yml down -v --remove-orphans; \
-                printf "\033[$(GREEN)m✅ Project Docker cleanup complete (images preserved)\033[0m\n"; \
-        fi
+	@if $(call ask_confirmation, This will remove containers and volumes from docker-compose.yml!, Cleaning project Docker resources); then \
+		docker compose -f docker-compose.yml stop || true; \
+		docker compose -f docker-compose.yml down -v --remove-orphans; \
+		printf "\033[$(GREEN)m✅ Project Docker cleanup complete (images preserved)\033[0m\n"; \
+	fi
 
 # Docker command aliases
 ddb: docker-db
