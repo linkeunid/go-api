@@ -152,6 +152,7 @@ func main() {
 		dryRun     = flag.Bool("dry-run", false, "Show what would be done without actually running migrations")
 		fromModel  = flag.String("from-model", "", "Create migration from a model (e.g., animal)")
 		listModels = flag.Bool("list-models", false, "List available models for migrations")
+		allModels  = flag.Bool("all-models", false, "Create migrations from all available models (skip existing)")
 	)
 	flag.Parse()
 
@@ -165,6 +166,8 @@ func main() {
 	switch {
 	case *listModels:
 		listAvailableModels()
+	case *allModels:
+		handleAllModelsCommand()
 	case *createCmd:
 		handleCreateCommand(*fromModel, migrationName)
 	case *upCmd:
@@ -208,6 +211,132 @@ func handleMigrationCommand(direction string, steps int, dryRun bool) {
 	}
 
 	runMigrations(manager.migrator, direction, steps, dryRun)
+}
+
+// handleAllModelsCommand handles the creation of migrations from all available models
+func handleAllModelsCommand() {
+	manager, err := NewMigrationManager()
+	if err != nil {
+		log.Fatalf("Failed to initialize migration manager: %v", err)
+	}
+
+	fmt.Println("🗃️ Creating migrations from all available models...")
+	fmt.Println("📋 Getting list of available models...")
+
+	if len(ModelRegistry) == 0 {
+		fmt.Println("❌ No models found in registry")
+		return
+	}
+
+	totalCount := len(ModelRegistry)
+	processedCount := 0
+	createdCount := 0
+	skippedCount := 0
+
+	fmt.Printf("📊 Found %d model(s) to process\n\n", totalCount)
+
+	for modelName := range ModelRegistry {
+		processedCount++
+		fmt.Printf("\033[34m[%d/%d]\033[0m Processing model: \033[1m%s\033[0m", processedCount, totalCount, modelName)
+
+		// Check if table already exists
+		if tableExists(manager, modelName) {
+			fmt.Printf(" - \033[33m⏭️ SKIPPED (table exists)\033[0m\n")
+			skippedCount++
+			continue
+		}
+
+		// Create migration for this model
+		migrationName := fmt.Sprintf("create_%s_table", modelName)
+		err := createModelMigrationSafe(manager, modelName, migrationName)
+		if err != nil {
+			fmt.Printf(" - \033[31m❌ ERROR\033[0m\n")
+			fmt.Printf("   Error details: %v\n", err)
+		} else {
+			fmt.Printf(" - \033[32m✅ CREATED\033[0m\n")
+			createdCount++
+		}
+
+		// Small delay to avoid overwhelming the system
+		time.Sleep(500 * time.Millisecond)
+	}
+
+	// Display summary
+	fmt.Println("")
+	fmt.Printf("\033[1;32m📊 Migration Summary:\033[0m\n")
+	fmt.Printf("   Total models processed: %d\n", totalCount)
+	fmt.Printf("   \033[32m✅ Created: %d\033[0m\n", createdCount)
+	fmt.Printf("   \033[33m⏭️ Skipped: %d\033[0m\n", skippedCount)
+
+	if createdCount > 0 {
+		fmt.Println("")
+		fmt.Println("💡 Tip: Run 'make sync-model-map' to update the model map with any new migrations")
+	}
+
+	fmt.Printf("\033[1;32m✅ All model migrations processing completed\033[0m\n")
+}
+
+// tableExists checks if a table for the given model already exists
+func tableExists(manager *MigrationManager, modelName string) bool {
+	model, exists := ModelRegistry[strings.ToLower(modelName)]
+	if !exists {
+		return false
+	}
+
+	// Parse the model to get table information
+	stmt := &gorm.Statement{DB: manager.generator.db}
+	if err := stmt.Parse(model); err != nil {
+		return false
+	}
+
+	tableName := stmt.Schema.Table
+
+	// Check if table exists in database
+	cfg := config.LoadConfig()
+	db, err := gorm.Open(gormMysql.Open(cfg.Database.DSN), &gorm.Config{})
+	if err != nil {
+		return false
+	}
+
+	return db.Migrator().HasTable(tableName)
+}
+
+// createModelMigrationSafe is a safer version of createModelMigration that doesn't exit on error
+func createModelMigrationSafe(manager *MigrationManager, modelName, migrationName string) error {
+	model, exists := ModelRegistry[strings.ToLower(modelName)]
+	if !exists {
+		return fmt.Errorf("model '%s' not found", modelName)
+	}
+
+	// Generate migration files
+	timestamp := time.Now().Unix()
+	version := strconv.FormatInt(timestamp, 10)
+	safeVersion := fmt.Sprintf("%s_%s", version, migrationName)
+
+	// Ensure migrations directory exists
+	if err := os.MkdirAll(migrationsPath, os.ModePerm); err != nil {
+		return fmt.Errorf("failed to create migrations directory: %w", err)
+	}
+
+	// Generate SQL using GORM migrator
+	upSQL, downSQL, err := manager.generator.GenerateModelMigration(model)
+	if err != nil {
+		return fmt.Errorf("failed to generate migration SQL: %w", err)
+	}
+
+	// Create migration files
+	upFile := filepath.Join(migrationsPath, fmt.Sprintf("%s.up.sql", safeVersion))
+	downFile := filepath.Join(migrationsPath, fmt.Sprintf("%s.down.sql", safeVersion))
+
+	if err := os.WriteFile(upFile, []byte(upSQL), 0644); err != nil {
+		return fmt.Errorf("failed to create up migration file: %w", err)
+	}
+
+	if err := os.WriteFile(downFile, []byte(downSQL), 0644); err != nil {
+		return fmt.Errorf("failed to create down migration file: %w", err)
+	}
+
+	return nil
 }
 
 // listAvailableModels lists all available models for migrations
@@ -448,6 +577,7 @@ func showHelp() {
 	fmt.Println("\nUsage:")
 	fmt.Println("  migrate -create NAME                Create a new empty migration")
 	fmt.Println("  migrate -create -from-model MODEL   Create a migration from a model")
+	fmt.Println("  migrate -all-models                 Create migrations from all available models (skip existing)")
 	fmt.Println("  migrate -up                         Run all pending migrations")
 	fmt.Println("  migrate -up -steps N                Run N up migrations")
 	fmt.Println("  migrate -down                       Roll back the last migration")
@@ -459,6 +589,7 @@ func showHelp() {
 	fmt.Println("\nExamples:")
 	fmt.Println("  migrate -create add_users_table")
 	fmt.Println("  migrate -create -from-model animal")
+	fmt.Println("  migrate -all-models")
 	fmt.Println("  migrate -up")
 	fmt.Println("  migrate -down -steps 1")
 	fmt.Println("  migrate -force 0               (Reset all migrations)")

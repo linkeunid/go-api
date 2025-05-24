@@ -223,11 +223,14 @@ make help
 
 #### Database Aliases
 
-| Alias | Full Command       | Description                   |
-| ----- | ------------------ | ----------------------------- |
-| `sd`  | `seed`             | Run all database seeders      |
-| `tr`  | `truncate`         | Truncate specific table       |
-| `um`  | `update-model-map` | Update model map for database |
+| Alias | Full Command         | Description                        |
+| ----- | -------------------- | ---------------------------------- |
+| `sd`  | `seed`               | Run all database seeders           |
+| `tr`  | `truncate`           | Truncate specific table            |
+| `mam` | `migrate-all-models` | Create migrations from all models  |
+| `um`  | `update-model-map`   | Update model map for database      |
+| `sm`  | `sync-model-map`     | Sync model map                     |
+| `smm` | `sync-model-map`     | Sync model map (alternative alias) |
 
 #### Project Setup Aliases
 
@@ -269,6 +272,13 @@ make gta    # Admin token
 make gtu id=123  # Token for specific user ID
 ```
 
+Work with database migrations:
+```bash
+make mam    # Create migrations for all models
+make um     # Update model map
+make sm     # Sync model map
+```
+
 </details>
 
 ### API Endpoints
@@ -306,7 +316,8 @@ graph TD
     
     subgraph "Database Setup"
         D --> E[Run Migrations]
-        E -->|make migrate| F[Seed Database]
+        E -->|make migrate| E2[Create Model Migrations]
+        E2 -->|make mam / make migrate-all-models| F[Seed Database]
         F -->|make seed / make sd| G[Ready for Development]
     end
     
@@ -337,9 +348,10 @@ graph TD
     
     subgraph "Helper Commands"
         Q1[Generate JWT Token] -->|make gt, make gtu, make gta| J
-        Q2[Database Operations] -->|make um, make sm| J
-        Q3[Monitor Containers] -->|make fps, make docker-logs / make dlogs| J
-        Q4[Flush Cache] -->|make flush-redis / make fr| J
+        Q2[Database Operations] -->|make um, make sm, make smm| J
+        Q3[Migrate All Models] -->|make mam| J
+        Q4[Monitor Containers] -->|make fps, make docker-logs / make dlogs| J
+        Q5[Flush Cache] -->|make flush-redis / make fr| J
     end
 ```
 
@@ -778,16 +790,32 @@ make migrate-create name=add_new_field
 # Create a migration from a model
 make migrate-from-model model=animal
 
+# Create migrations from all available models (skip existing tables)
+make migrate-all-models
+# or use alias
+make mam
+
 # Roll back the last migration
 make migrate-down
 
 # Check migration status
 make migrate-status
+
+# List available models
+make migrate-list-models
 ```
 
 Each migration consists of:
 - `[timestamp]_[name].up.sql`: SQL to apply the migration
 - `[timestamp]_[name].down.sql`: SQL to roll back the migration
+
+**Migrate All Models Feature:**
+The `migrate-all-models` command automatically:
+- 🔍 Discovers all available models in the registry
+- 🔄 Creates migrations for each model
+- ⏭️ Skips models whose tables already exist
+- 📊 Provides a summary of operations (created/skipped)
+- 🎨 Shows colorful progress with `[1/5]`, `[2/5]` format
 
 ### Seeding
 

@@ -63,6 +63,7 @@ help:
 	@printf "  \033[1mmake migrate-down\033[0m   - ⏮️ Roll back the last migration\n"
 	@printf "  \033[1mmake migrate-create name=NAME\033[0m - 📝 Create a new migration\n"
 	@printf "  \033[1mmake migrate-from-model model=NAME\033[0m - 🔄 Create a migration from a model\n"
+	@printf "  \033[1mmake migrate-all-models\033[0m - 🚀 Create migrations from all available models (skip existing)\n"
 	@printf "  \033[1mmake migrate-list-models\033[0m - 📋 List available models for migrations\n"
 	@printf "  \033[1mmake migrate-reset\033[0m  - 🔄 Reset all migrations\n"
 	@printf "\n"
@@ -120,9 +121,11 @@ help:
 	@printf "  \033[1mmake sd\033[0m             - ↩️ Alias for 'seed'\n"
 	@printf "  \033[1mmake tr\033[0m             - ↩️ Alias for 'truncate'\n"
 	@printf "  \033[1mmake tra\033[0m            - ↩️ Alias for 'truncate-all'\n"
+	@printf "  \033[1mmake mam\033[0m            - ↩️ Alias for 'migrate-all-models'\n"
 	@printf "  \033[1mmake um\033[0m             - ↩️ Alias for 'update-model-map'\n"
 	@printf "  \033[1mmake cm\033[0m             - ↩️ Alias for 'clean-model-map'\n"
 	@printf "  \033[1mmake sm\033[0m             - ↩️ Alias for 'sync-model-map'\n"
+	@printf "  \033[1mmake smm\033[0m            - ↩️ Alias for 'sync-model-map'\n"
 	@printf "  \033[1mmake fr\033[0m             - ↩️ Alias for 'flush-redis'\n"
 	@printf "  \033[1mmake gt\033[0m             - ↩️ Alias for 'generate-token'\n"
 	@printf "  \033[1mmake gtu\033[0m            - ↩️ Alias for 'generate-token-user'\n"
@@ -412,6 +415,11 @@ migrate-reset:
 		printf "\033[$(GREEN)m✅ All migrations have been reset\033[0m\n"; \
 	fi
 
+# Create migrations from all available models (skip if table already exists)
+migrate-all-models:
+	@echo "🗃️ Creating migrations from all available models..."
+	@go run ./cmd/migrate -all-models
+
 # Run all seeders
 seed:
 	@echo "🌱 Running all database seeders..."
@@ -567,9 +575,11 @@ l: lint
 sd: seed
 tr: truncate
 tra: truncate-all
+mam: migrate-all-models
 um: update-model-map
 cm: clean-model-map
 sm: sync-model-map
+smm: sync-model-map
 fr: flush-redis
 gt: generate-token
 gtu: generate-token-user
