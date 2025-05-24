@@ -1,4 +1,5 @@
 // Package main provides a command line tool for updating the model map in cmd/db/main.go
+// and the ModelRegistry in cmd/migrate/main.go
 package main
 
 import (
@@ -43,7 +44,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Determine which models to keep, add, or remove
+	// Determine which models to use, add, or remove
 	var modelsToUse []string
 	var added, removed []string
 
@@ -81,14 +82,20 @@ func main() {
 
 	// Update the model map in cmd/db/main.go
 	if err := updateModelMap("cmd/db/main.go", modelsToUse); err != nil {
-		fmt.Printf("Error updating model map: %v\n", err)
+		fmt.Printf("Error updating model map in cmd/db/main.go: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Update the ModelRegistry in cmd/migrate/main.go
+	if err := updateModelRegistry("cmd/migrate/main.go", modelsToUse); err != nil {
+		fmt.Printf("Error updating ModelRegistry in cmd/migrate/main.go: %v\n", err)
 		os.Exit(1)
 	}
 
 	// Print summary based on the mode
 	if cleanOnly {
 		if len(removed) > 0 {
-			fmt.Printf("✅ Cleaned model map: removed %d models\n", len(removed))
+			fmt.Printf("✅ Cleaned model map and registry: removed %d models\n", len(removed))
 			for _, model := range removed {
 				fmt.Printf("  - Removed: %s\n", model)
 			}
@@ -96,7 +103,7 @@ func main() {
 			fmt.Println("✅ No models needed to be removed")
 		}
 	} else if syncMode {
-		fmt.Printf("✅ Synced model map with %d models (added: %d, removed: %d)\n",
+		fmt.Printf("✅ Synced model map and registry with %d models (added: %d, removed: %d)\n",
 			len(modelsToUse), len(added), len(removed))
 
 		if len(added) > 0 {
@@ -113,7 +120,7 @@ func main() {
 			}
 		}
 	} else {
-		fmt.Printf("✅ Updated model map with %d models\n", len(modelsToUse))
+		fmt.Printf("✅ Updated model map and registry with %d models\n", len(modelsToUse))
 		if len(added) > 0 {
 			fmt.Println("  Newly added models:")
 			for _, model := range added {
@@ -272,6 +279,40 @@ func updateModelMap(filePath string, models []string) error {
 
 	// Replace the model map declaration
 	newContent := pattern.ReplaceAllString(string(content), newMap.String())
+
+	// Write the updated content back to the file
+	if err := os.WriteFile(filePath, []byte(newContent), 0644); err != nil {
+		return fmt.Errorf("failed to write file: %w", err)
+	}
+
+	return nil
+}
+
+// updateModelRegistry updates the ModelRegistry in the specified Go file
+func updateModelRegistry(filePath string, models []string) error {
+	// Read the file content
+	content, err := os.ReadFile(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to read file: %w", err)
+	}
+
+	// Define a pattern to match the ModelRegistry declaration
+	// Match from "var ModelRegistry" up to the final closing brace
+	pattern := regexp.MustCompile(`var\s+ModelRegistry\s*=\s*map\[string\]interface\{\}\s*\{[\s\S]*?\n\}`)
+
+	// Generate the new ModelRegistry with proper formatting
+	var newRegistry bytes.Buffer
+	newRegistry.WriteString("var ModelRegistry = map[string]interface{}{\n")
+	for _, model := range models {
+		// Convert PascalCase to snake_case for the key
+		modelKey := toSnakeCase(model)
+		// Use the original PascalCase struct name
+		newRegistry.WriteString(fmt.Sprintf("\t\"%s\": &model.%s{},\n", modelKey, model))
+	}
+	newRegistry.WriteString("}")
+
+	// Replace the ModelRegistry declaration
+	newContent := pattern.ReplaceAllString(string(content), newRegistry.String())
 
 	// Write the updated content back to the file
 	if err := os.WriteFile(filePath, []byte(newContent), 0644); err != nil {
