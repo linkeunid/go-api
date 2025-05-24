@@ -896,8 +896,8 @@ The setup-project tool automatically updates the following components to match y
 - Updates all import paths in Go files
 
 **🐳 Docker Configuration:**
-- **Service Names**: `api` → `your-project-api`, `mysql` → `your-project-mysql`, `redis` → `your-project-redis`
-- **Container Names**: `go-api` → `your-project-api`, `go-mysql` → `your-project-mysql`, `linkeun-redis` → `your-project-redis`
+- **Service Names**: `api` → `your-project`, `mysql` → `your-project-mysql`, `redis` → `your-project-redis`
+- **Container Names**: `go-api` → `your-project`, `go-mysql` → `your-project-mysql`, `linkeun-redis` → `your-project-redis`
 - **Network**: `linkeun-network` → `your-project-network`
 - **Volumes**: `mysql_data` → `your-project_mysql_data`, `redis_data` → `your-project_redis_data`
 - **Service References**: Updates `depends_on` and environment variable references
@@ -936,8 +936,8 @@ volumes:
 **After:**
 ```yaml
 services:
-  awesome-api-api:
-    container_name: awesome-api-api
+  awesome-api:
+    container_name: awesome-api
     depends_on:
       awesome-api-mysql:
         condition: service_healthy

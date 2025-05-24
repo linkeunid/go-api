@@ -94,7 +94,7 @@ func confirmAction() bool {
 	fmt.Println("⚠️ WARNING: This operation will:")
 	fmt.Printf("  - Rename module from %s to %s\n", currentModuleName, newModuleName)
 	fmt.Println("  - Update all import paths in Go files")
-	fmt.Printf("  - Update docker-compose.yml service names (api -> %s-api, mysql -> %s-mysql, redis -> %s-redis)\n", projectName, projectName, projectName)
+	fmt.Printf("  - Update docker-compose.yml service names (api -> %s, mysql -> %s-mysql, redis -> %s-redis)\n", projectName, projectName, projectName)
 	fmt.Printf("  - Update docker-compose.yml container names accordingly\n")
 
 	if resetGit {
@@ -235,72 +235,52 @@ func updateDockerCompose() {
 	projectName := extractProjectName(newModuleName)
 	originalContent := content
 
-	// Define service mapping: old name -> new name
-	serviceMap := map[string]string{
-		"api":   projectName + "-api",
-		"mysql": projectName + "-mysql",
-		"redis": projectName + "-redis",
+	if verbose {
+		fmt.Printf("  - Project name extracted: %s\n", projectName)
 	}
 
-	// Define container mapping: old name -> new name
-	containerMap := map[string]string{
-		"go-api":        projectName + "-api",
-		"go-mysql":      projectName + "-mysql",
-		"linkeun-redis": projectName + "-redis",
-	}
-
-	// Update service names (as top-level services)
-	for oldService, newService := range serviceMap {
-		// Match service definitions (e.g., "  api:" or "services:\n  api:")
-		servicePattern := regexp.MustCompile(`(\s+)` + regexp.QuoteMeta(oldService) + `:`)
-		content = servicePattern.ReplaceAll(content, []byte(`$1`+newService+`:`))
-	}
+	// Update service names (top-level services under 'services:')
+	// Match "  api:" exactly with 2 spaces at start of line
+	content = regexp.MustCompile(`(?m)^  api:`).ReplaceAll(content, []byte("  "+projectName+":"))
+	content = regexp.MustCompile(`(?m)^  mysql:`).ReplaceAll(content, []byte("  "+projectName+"-mysql:"))
+	content = regexp.MustCompile(`(?m)^  redis:`).ReplaceAll(content, []byte("  "+projectName+"-redis:"))
 
 	// Update container names
-	for oldContainer, newContainer := range containerMap {
-		// Match container_name lines (e.g., "container_name: go-api")
-		containerPattern := regexp.MustCompile(`container_name:\s*` + regexp.QuoteMeta(oldContainer))
-		content = containerPattern.ReplaceAll(content, []byte(`container_name: `+newContainer))
-	}
+	content = regexp.MustCompile(`container_name: go-api`).ReplaceAll(content, []byte("container_name: "+projectName))
+	content = regexp.MustCompile(`container_name: go-mysql`).ReplaceAll(content, []byte("container_name: "+projectName+"-mysql"))
+	content = regexp.MustCompile(`container_name: linkeun-redis`).ReplaceAll(content, []byte("container_name: "+projectName+"-redis"))
 
-	// Update service references in depends_on and other cross-references
-	for oldService, newService := range serviceMap {
-		// Update depends_on references (e.g., "mysql:" under depends_on)
-		dependsPattern := regexp.MustCompile(`(\s+` + regexp.QuoteMeta(oldService) + `:)(\s+condition:)`)
-		content = dependsPattern.ReplaceAll(content, []byte(`      `+newService+`:$2`))
+	// Update depends_on references (6 spaces indentation)
+	content = regexp.MustCompile(`(?m)^      mysql:`).ReplaceAll(content, []byte("      "+projectName+"-mysql:"))
+	content = regexp.MustCompile(`(?m)^      redis:`).ReplaceAll(content, []byte("      "+projectName+"-redis:"))
 
-		// Update service references in environment variables (e.g., REDIS_HOST=redis)
-		envPattern := regexp.MustCompile(`(=)` + regexp.QuoteMeta(oldService) + `(\s|$)`)
-		content = envPattern.ReplaceAll(content, []byte(`$1`+newService+`$2`))
-	}
+	// Update environment variable references
+	content = regexp.MustCompile(`\$\{DB_HOST:-mysql\}`).ReplaceAll(content, []byte("${DB_HOST:-"+projectName+"-mysql}"))
+	content = regexp.MustCompile(`\$\{REDIS_HOST:-redis\}`).ReplaceAll(content, []byte("${REDIS_HOST:-"+projectName+"-redis}"))
 
 	// Update network name
 	oldNetworkName := "linkeun-network"
 	newNetworkName := projectName + "-network"
 
-	// Update network definition
-	networkDefPattern := regexp.MustCompile(`(\s+)` + regexp.QuoteMeta(oldNetworkName) + `:`)
-	content = networkDefPattern.ReplaceAll(content, []byte(`$1`+newNetworkName+`:`))
+	// Update network definition (at root level)
+	content = regexp.MustCompile(`(?m)^  `+regexp.QuoteMeta(oldNetworkName)+`:`).ReplaceAll(content, []byte("  "+newNetworkName+":"))
 
-	// Update network references
-	networkRefPattern := regexp.MustCompile(`- ` + regexp.QuoteMeta(oldNetworkName))
-	content = networkRefPattern.ReplaceAll(content, []byte(`- `+newNetworkName))
+	// Update network references in services
+	content = regexp.MustCompile(`- `+regexp.QuoteMeta(oldNetworkName)).ReplaceAll(content, []byte("- "+newNetworkName))
 
-	// Update volume names to include project name
-	volumeMap := map[string]string{
-		"mysql_data": projectName + "_mysql_data",
-		"redis_data": projectName + "_redis_data",
-	}
+	// Update volume names
+	oldMysqlVolume := "mysql_data"
+	newMysqlVolume := projectName + "_mysql_data"
+	oldRedisVolume := "redis_data"
+	newRedisVolume := projectName + "_redis_data"
 
-	for oldVolume, newVolume := range volumeMap {
-		// Update volume definitions
-		volumeDefPattern := regexp.MustCompile(`(\s+)` + regexp.QuoteMeta(oldVolume) + `:`)
-		content = volumeDefPattern.ReplaceAll(content, []byte(`$1`+newVolume+`:`))
+	// Update volume definitions (at root level)
+	content = regexp.MustCompile(`(?m)^  `+regexp.QuoteMeta(oldMysqlVolume)+`:`).ReplaceAll(content, []byte("  "+newMysqlVolume+":"))
+	content = regexp.MustCompile(`(?m)^  `+regexp.QuoteMeta(oldRedisVolume)+`:`).ReplaceAll(content, []byte("  "+newRedisVolume+":"))
 
-		// Update volume references
-		volumeRefPattern := regexp.MustCompile(`- ` + regexp.QuoteMeta(oldVolume) + `:`)
-		content = volumeRefPattern.ReplaceAll(content, []byte(`- `+newVolume+`:`))
-	}
+	// Update volume references in services
+	content = regexp.MustCompile(`- `+regexp.QuoteMeta(oldMysqlVolume)+`:`).ReplaceAll(content, []byte("- "+newMysqlVolume+":"))
+	content = regexp.MustCompile(`- `+regexp.QuoteMeta(oldRedisVolume)+`:`).ReplaceAll(content, []byte("- "+newRedisVolume+":"))
 
 	// If content hasn't changed, skip writing
 	if bytes.Equal(originalContent, content) {
@@ -319,8 +299,8 @@ func updateDockerCompose() {
 
 	if verbose {
 		fmt.Printf("  ✓ Updated docker-compose.yml with project name: %s\n", projectName)
-		fmt.Printf("    - Services: api -> %s-api, mysql -> %s-mysql, redis -> %s-redis\n", projectName, projectName, projectName)
-		fmt.Printf("    - Containers: go-api -> %s-api, go-mysql -> %s-mysql, linkeun-redis -> %s-redis\n", projectName, projectName, projectName)
+		fmt.Printf("    - Services: api -> %s, mysql -> %s-mysql, redis -> %s-redis\n", projectName, projectName, projectName)
+		fmt.Printf("    - Containers: go-api -> %s, go-mysql -> %s-mysql, linkeun-redis -> %s-redis\n", projectName, projectName, projectName)
 		fmt.Printf("    - Network: linkeun-network -> %s-network\n", projectName)
 		fmt.Printf("    - Volumes: mysql_data -> %s_mysql_data, redis_data -> %s_redis_data\n", projectName, projectName)
 	} else {
