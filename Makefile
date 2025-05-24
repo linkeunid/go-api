@@ -133,7 +133,6 @@ help:
 	$(call print_help_line, make um, ↩️ Alias for 'update-model-map')
 	$(call print_help_line, make cm, ↩️ Alias for 'clean-model-map')
 	$(call print_help_line, make sm, ↩️ Alias for 'sync-model-map')
-	$(call print_help_line, make smm, ↩️ Alias for 'sync-model-map')
 	$(call print_help_line, make fr, ↩️ Alias for 'flush-redis')
 	$(call print_help_line, make gt, ↩️ Alias for 'generate-token')
 	$(call print_help_line, make gtu, ↩️ Alias for 'generate-token-user')
@@ -587,7 +586,6 @@ mam: migrate-all-models
 um: update-model-map
 cm: clean-model-map
 sm: sync-model-map
-smm: sync-model-map
 fr: flush-redis
 gt: generate-token
 gtu: generate-token-user
