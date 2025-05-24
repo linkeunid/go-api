@@ -14,6 +14,12 @@ import (
 	"gorm.io/gorm"
 )
 
+// CachedPaginatedResult represents both data and pagination info for caching
+type CachedPaginatedResult struct {
+	Animals    []model.Animal     `json:"animals"`
+	Pagination *pagination.Params `json:"pagination"`
+}
+
 // CacheInfo holds information about cache usage for a query
 type CacheInfo struct {
 	Status   database.CacheStatus `json:"status"`   // hit, miss, or disabled
@@ -226,19 +232,28 @@ func (r *mysqlAnimalRepository) FindAllPaginated(ctx context.Context, params pag
 	// Check if we have this query in cache
 	var cacheStatus database.CacheStatus
 	var cacheHit bool
+	var cachedResult CachedPaginatedResult
 
 	if r.db.GetCacheManager() != nil && r.db.GetCacheManager().GetCache() != nil {
-		// Try to get data from cache
-		err := r.db.GetCacheManager().GetCache().Get(ctx, cacheKey, &animals)
+		// Try to get data from cache (including pagination metadata)
+		err := r.db.GetCacheManager().GetCache().Get(ctx, cacheKey, &cachedResult)
 		if err == nil {
-			// Cache hit - we can return early
+			// Cache hit - use both animals and pagination from cache
 			cacheStatus = database.CacheHit
 			cacheHit = true
+			animals = cachedResult.Animals
+
+			// Use the cached pagination data
+			if cachedResult.Pagination != nil {
+				result.Pagination = cachedResult.Pagination
+			}
 
 			r.logger.Debug("Cache hit for paginated query",
 				zap.String("key", cacheKey),
 				zap.Int("page", params.Page),
-				zap.Int("limit", params.Limit))
+				zap.Int("limit", params.Limit),
+				zap.Int64("total_items", result.Pagination.TotalItems),
+				zap.Int("total_pages", result.Pagination.TotalPages))
 		} else {
 			// Cache miss
 			cacheStatus = database.CacheMiss
@@ -267,6 +282,7 @@ func (r *mysqlAnimalRepository) FindAllPaginated(ctx context.Context, params pag
 
 		// Calculate pagination metadata
 		params.CalculatePages(totalRows)
+		result.Pagination = &params
 
 		// Calculate offset
 		offset := (params.Page - 1) * params.Limit
@@ -288,9 +304,11 @@ func (r *mysqlAnimalRepository) FindAllPaginated(ctx context.Context, params pag
 			zap.Int("count", len(animals)),
 			zap.Int("page", params.Page),
 			zap.Int("limit", params.Limit),
-			zap.Int("offset", offset))
+			zap.Int("offset", offset),
+			zap.Int64("total_items", params.TotalItems),
+			zap.Int("total_pages", params.TotalPages))
 
-		// Cache the results if caching is enabled
+		// Cache the results with pagination metadata if caching is enabled
 		if cacheStatus != database.CacheDisabled && r.db.GetCacheManager() != nil && r.db.GetCacheManager().GetCache() != nil {
 			// Parse duration from string
 			ttl, err := time.ParseDuration(r.paginatedTTL)
@@ -299,13 +317,21 @@ func (r *mysqlAnimalRepository) FindAllPaginated(ctx context.Context, params pag
 				ttl = time.Minute * 5 // Use default of 5 minutes on error
 			}
 
+			// Prepare data to cache (both animals and pagination)
+			cacheData := CachedPaginatedResult{
+				Animals:    animals,
+				Pagination: result.Pagination,
+			}
+
 			// Store in cache
-			if err := r.db.GetCacheManager().GetCache().Set(ctx, cacheKey, animals, ttl); err != nil {
+			if err := r.db.GetCacheManager().GetCache().Set(ctx, cacheKey, cacheData, ttl); err != nil {
 				r.logger.Warn("Failed to cache paginated animals", zap.Error(err))
 			} else {
 				r.logger.Debug("Stored paginated results in cache",
 					zap.String("key", cacheKey),
-					zap.Duration("ttl", ttl))
+					zap.Duration("ttl", ttl),
+					zap.Int64("total_items", result.Pagination.TotalItems),
+					zap.Int("total_pages", result.Pagination.TotalPages))
 			}
 		}
 	}
