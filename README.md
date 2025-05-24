@@ -23,6 +23,7 @@ A comprehensive Go API project with RESTful endpoints, JWT authentication, cachi
     - [API Endpoints](#api-endpoints)
       - [Animals Resource](#animals-resource)
       - [Query Parameters](#query-parameters)
+  - [Development Flow Diagram](#development-flow-diagram)
   - [Project Structure](#project-structure)
   - [Authentication](#authentication)
     - [JWT Overview](#jwt-overview)
@@ -58,7 +59,6 @@ A comprehensive Go API project with RESTful endpoints, JWT authentication, cachi
   - [Development](#development)
     - [Swagger Documentation](#swagger-documentation)
     - [Development Workflow](#development-workflow)
-      - [Development Flow Diagram](#development-flow-diagram)
     - [Using as a Template](#using-as-a-template)
   - [Deployment](#deployment)
     - [Docker](#docker)
@@ -291,6 +291,57 @@ For paginated endpoints:
 - `limit`: Items per page (default: 10, max: 100)
 - `sort`: Sort field (e.g., id, name, created_at)
 - `direction`: Sort direction (asc, desc)
+
+## Development Flow Diagram
+
+The following diagram illustrates the development workflow from initial setup through to deployment, highlighting the key commands and their aliases used at each stage:
+
+```mermaid
+graph TD
+    subgraph "Setup"
+        A[Clone Repository] --> B[Configure Environment]
+        B --> C[Initialize Project with Aliases]
+        C -->|make init / make i| D[Generate Swagger Docs]
+    end
+    
+    subgraph "Database Setup"
+        D --> E[Run Migrations]
+        E -->|make migrate| F[Seed Database]
+        F -->|make seed / make sd| G[Ready for Development]
+    end
+    
+    subgraph "Development Cycle"
+        G --> H[Code Changes]
+        H --> I[Run Development Server]
+        I -->|make dev / make d| J[Test API]
+        J --> K[Generate & View Documentation]
+        K -->|make swagger / make s| K2[View Swagger UI]
+        K2 -->|make swagger-ui / make su| H
+    end
+    
+    subgraph "Testing"
+        H --> L1[Run Tests]
+        L1 -->|make test / make t| L2[Format Code]
+        L2 -->|make fmt| L3[Lint Code]
+        L3 -->|make lint / make l| H
+    end
+    
+    subgraph "Deployment"
+        H --> M1[Build]
+        M1 -->|make build| M2[Deployment Options]
+        M2 --> N[Docker Container]
+        N -->|make docker-up / make dup| O[Production]
+        M2 --> P[Kubernetes]
+        P -->|k8s/deploy-minikube.sh| O
+    end
+    
+    subgraph "Helper Commands"
+        Q1[Generate JWT Token] -->|make gt, make gtu, make gta| J
+        Q2[Database Operations] -->|make um, make sm| J
+        Q3[Monitor Containers] -->|make fps, make docker-logs / make dlogs| J
+        Q4[Flush Cache] -->|make flush-redis / make fr| J
+    end
+```
 
 <details>
 <summary>🏗️ Project Structure</summary>
@@ -803,57 +854,6 @@ The project follows a streamlined development workflow:
 2. **Database Setup**: Run migrations, seed test data
 3. **Development Cycle**: Code, test, document
 4. **Deployment**: Build and deploy via Docker or Kubernetes
-
-#### Development Flow Diagram
-
-```mermaid
-graph TD
-    subgraph "Setup"
-        A[Clone Repository] --> B[Configure Environment]
-        B --> C[Initialize Project with Aliases]
-        C -->|make init / make i| D[Generate Swagger Docs]
-    end
-    
-    subgraph "Database Setup"
-        D --> E[Run Migrations]
-        E -->|make migrate| F[Seed Database]
-        F -->|make seed / make sd| G[Ready for Development]
-    end
-    
-    subgraph "Development Cycle"
-        G --> H[Code Changes]
-        H --> I[Run Development Server]
-        I -->|make dev / make d| J[Test API]
-        J --> K[Generate & View Documentation]
-        K -->|make swagger / make s| K2[View Swagger UI]
-        K2 -->|make swagger-ui / make su| H
-    end
-    
-    subgraph "Testing"
-        H --> L1[Run Tests]
-        L1 -->|make test / make t| L2[Format Code]
-        L2 -->|make fmt| L3[Lint Code]
-        L3 -->|make lint / make l| H
-    end
-    
-    subgraph "Deployment"
-        H --> M1[Build]
-        M1 -->|make build| M2[Deployment Options]
-        M2 --> N[Docker Container]
-        N -->|make docker-up / make dup| O[Production]
-        M2 --> P[Kubernetes]
-        P -->|k8s/deploy-minikube.sh| O
-    end
-    
-    subgraph "Helper Commands"
-        Q1[Generate JWT Token] -->|make gt, make gtu, make gta| J
-        Q2[Database Operations] -->|make um, make sm| J
-        Q3[Monitor Containers] -->|make fps, make docker-logs / make dlogs| J
-        Q4[Flush Cache] -->|make flush-redis / make fr| J
-    end
-```
-
-This diagram illustrates the development workflow from initial setup through to deployment, highlighting the key commands and their aliases used at each stage.
 
 ### Using as a Template
 

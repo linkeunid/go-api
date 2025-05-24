@@ -663,12 +663,12 @@ fancy-ps: ## Show fancy container status with colors and details
 	@echo "   alias fps='make -C $(PWD) fps'"
 	@echo ""
 
-docker-clean: ## Remove all containers, volumes, and images
-	@if $(call ask_confirmation, This will remove ALL Docker containers\\, volumes\\, and images!, Cleaning Docker resources); then \
-		docker compose -f docker-compose.yml down -v; \
-		docker system prune -af --volumes; \
-		printf "\033[$(GREEN)m✅ Docker cleanup complete\033[0m\n"; \
-	fi
+docker-clean: ## Remove containers and volumes defined in docker-compose.yml only (keep images)
+        @if $(call ask_confirmation, This will remove containers and volumes from docker-compose.yml!, Cleaning project Docker resources); then \
+                docker compose -f docker-compose.yml stop || true; \
+                docker compose -f docker-compose.yml down -v --remove-orphans; \
+                printf "\033[$(GREEN)m✅ Project Docker cleanup complete (images preserved)\033[0m\n"; \
+        fi
 
 # Docker command aliases
 ddb: docker-db
