@@ -108,6 +108,7 @@ help:
 	@printf "\033[1;36m🔧 Project Management\033[0m\n"
 	$(call print_help_line, make init, 🔧 Initialize project dependencies and generate documentation)
 	$(call print_help_line, make env-info, ℹ️ Display all environment variables used by the application)
+	$(call print_help_line, make env-info show=all, 🔓 Display environment variables with sensitive values revealed)
 	$(call print_help_line, make clean, 🧹 Remove build artifacts and logs with user confirmation)
 	$(call print_help_line, make clean-all, 🧹 Remove build artifacts and logs without confirmation (CI/automation))
 	$(call print_help_line, make clean-logs, 🧹 Remove application log files only with confirmation)
@@ -697,24 +698,14 @@ fps: fancy-ps
 
 # Show environment variables
 env-info: ## Show environment variables used by the application
-	@echo "🔍 Environment variables (from .env file if present):"
-	@echo "   API_HOST: $(call get_env,API_HOST,localhost)"
-	@echo "   API_PORT: $(call get_env,API_PORT,8080)"
-	@echo "   DB_HOST: $(call get_env,DB_HOST,localhost)"
-	@echo "   DB_PORT: $(call get_env,DB_PORT,3306)"
-	@echo "   DB_USER: $(call get_env,DB_USER,root)"
-	@echo "   DB_NAME: $(call get_env,DB_NAME,linkeun_go_api)"
-	@echo "   REDIS_HOST: $(call get_env,REDIS_HOST,localhost)"
-	@echo "   REDIS_PORT: $(call get_env,REDIS_PORT,6379)"
-	@echo "   REDIS_ENABLED: $(call get_env,REDIS_ENABLED,false)"
-	@echo "   AUTH_ENABLED: $(call get_env,AUTH_ENABLED,false)"
-	@echo "   JWT_EXPIRATION: $(call get_env,JWT_EXPIRATION,24h)"
-	@echo "   JWT_ALLOWED_ISSUERS: $(call get_env,JWT_ALLOWED_ISSUERS,linkeun-go-api)"
-	@echo "📝 Note: Values shown are actual values from .env or defaults if not defined"
-	@echo "🔒 Note: JWT_SECRET is not displayed for security reasons"
+	@if [ "$(show)" = "all" ]; then \
+		./scripts/env-info.sh --show-all; \
+	else \
+		./scripts/env-info.sh; \
+	fi
 
 # Other aliases
-ei: env-info 
+ei: env-info
 
 # Setup project as template
 setup:
