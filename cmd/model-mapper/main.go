@@ -149,13 +149,14 @@ func getCurrentModels(filePath string) ([]string, error) {
 	}
 
 	// Extract model names from the model map
-	// Look for patterns like: "modelname": &model.ModelName{},
+	// Look for patterns like: "model_name": &model.ModelName{},
 	pattern := regexp.MustCompile(`"([a-z0-9_]+)":\s*&model\.([A-Za-z0-9_]+)\{\}`)
 	matches := pattern.FindAllStringSubmatch(string(content), -1)
 
 	for _, match := range matches {
-		if len(match) > 1 {
-			models = append(models, match[1])
+		if len(match) > 2 {
+			// Return the struct name (PascalCase), not the key (snake_case)
+			models = append(models, match[2])
 		}
 	}
 
@@ -206,7 +207,7 @@ func scanModels(modelDir string) ([]string, error) {
 
 					// Check if this struct has a TableName method in the file
 					if hasTableNameMethod(file, structName) {
-						models = append(models, strings.ToLower(structName))
+						models = append(models, structName)
 					}
 				}
 			}
@@ -230,6 +231,22 @@ func hasTableNameMethod(filePath, structName string) bool {
 	return matched
 }
 
+// toSnakeCase converts a string from PascalCase to snake_case
+func toSnakeCase(s string) string {
+	var result string
+	for i, r := range s {
+		if i > 0 && r >= 'A' && r <= 'Z' {
+			result += "_"
+		}
+		if r >= 'A' && r <= 'Z' {
+			result += string(r - 'A' + 'a')
+		} else {
+			result += string(r)
+		}
+	}
+	return result
+}
+
 // updateModelMap updates the modelMap in the specified Go file
 func updateModelMap(filePath string, models []string) error {
 	// Read the file content
@@ -246,10 +263,10 @@ func updateModelMap(filePath string, models []string) error {
 	var newMap bytes.Buffer
 	newMap.WriteString("var modelMap = map[string]interface{}{\n")
 	for _, model := range models {
-		modelCamel := strings.ToLower(model)
-		// First letter of struct name should be capitalized
-		modelStruct := strings.ToUpper(model[:1]) + model[1:]
-		newMap.WriteString(fmt.Sprintf("\t\"%s\": &model.%s{},\n", modelCamel, modelStruct))
+		// Convert PascalCase to snake_case for the key
+		modelKey := toSnakeCase(model)
+		// Use the original PascalCase struct name
+		newMap.WriteString(fmt.Sprintf("\t\"%s\": &model.%s{},\n", modelKey, model))
 	}
 	newMap.WriteString("\t// Add more models here as they are implemented\n}")
 

@@ -30,6 +30,7 @@ const (
 // modelRegistry contains all models that can be used for migrations
 var modelRegistry = map[string]interface{}{
 	"animal": model.Animal{},
+	"flower": &model.Flower{},
 }
 
 func main() {
@@ -159,6 +160,12 @@ func createModelMigration(modelName string, migrationName string) {
 // generateSQLFromModel converts a Go struct to SQL CREATE TABLE and DROP TABLE statements
 func generateSQLFromModel(model interface{}, modelName string) (string, string) {
 	modelType := reflect.TypeOf(model)
+
+	// If it's a pointer, get the underlying struct type
+	if modelType.Kind() == reflect.Ptr {
+		modelType = modelType.Elem()
+	}
+
 	tableName := getTableName(model)
 
 	// Start building up SQL
