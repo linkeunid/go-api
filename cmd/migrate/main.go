@@ -258,7 +258,7 @@ func handleAllModelsCommand() {
 		}
 
 		// Small delay to avoid overwhelming the system
-		time.Sleep(500 * time.Millisecond)
+		time.Sleep(1500 * time.Millisecond)
 	}
 
 	// Display summary
