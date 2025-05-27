@@ -55,7 +55,6 @@ A comprehensive Go API project with RESTful endpoints, JWT authentication, cachi
       - [Retention Settings](#retention-settings)
     - [Testing Log Rotation](#testing-log-rotation)
       - [Testing Size-based Rotation (Default)](#testing-size-based-rotation-default)
-      - [Testing Daily Rotation](#testing-daily-rotation)
       - [Test Script Features](#test-script-features)
       - [Usage Examples](#usage-examples)
     - [Logging Best Practices](#logging-best-practices)
@@ -63,6 +62,7 @@ A comprehensive Go API project with RESTful endpoints, JWT authentication, cachi
   - [Database Operations](#database-operations)
     - [Migrations](#migrations)
     - [Seeding](#seeding)
+    - [Seeder Management](#seeder-management)
     - [Model Management](#model-management)
   - [Development](#development)
     - [Swagger Documentation](#swagger-documentation)
@@ -100,7 +100,7 @@ A comprehensive Go API project with RESTful endpoints, JWT authentication, cachi
 - Pagination, sorting, and filtering support
 - Docker and Kubernetes deployment configurations
 - API documentation with Swagger
-- Database migrations and seeding
+- Database migrations and seeding with automatic seeder registration
 - Environment-specific configurations
 - Comprehensive error handling
 - Advanced logging system with daily/size-based rotation and configurable outputs
@@ -234,14 +234,17 @@ make help
 
 #### Database Aliases
 
-| Alias | Full Command         | Description                        |
-| ----- | -------------------- | ---------------------------------- |
-| `sd`  | `seed`               | Run all database seeders           |
-| `tr`  | `truncate`           | Truncate specific table            |
-| `mam` | `migrate-all-models` | Create migrations from all models  |
-| `um`  | `update-model-map`   | Update model map for database      |
-| `sm`  | `sync-model-map`     | Sync model map                     |
-| `smm` | `sync-model-map`     | Sync model map (alternative alias) |
+| Alias | Full Command             | Description                        |
+| ----- | ------------------------ | ---------------------------------- |
+| `sd`  | `seed`                   | Run all database seeders           |
+| `tr`  | `truncate`               | Truncate specific table            |
+| `mam` | `migrate-all-models`     | Create migrations from all models  |
+| `um`  | `update-model-map`       | Update model map for database      |
+| `sm`  | `sync-model-map`         | Sync model map                     |
+| `smm` | `sync-model-map`         | Sync model map (alternative alias) |
+| `usr` | `update-seeder-registry` | Update seeder registry             |
+| `csr` | `clean-seeder-registry`  | Clean seeder registry              |
+| `ss`  | `sync-seeder`            | Sync seeder registry               |
 
 #### Project Setup Aliases
 
@@ -304,6 +307,13 @@ Work with database migrations:
 make mam    # Create migrations for all models
 make um     # Update model map
 make sm     # Sync model map
+```
+
+Work with database seeders:
+```bash
+make ss     # Sync seeder registry (add new, remove deleted)
+make usr    # Update seeder registry (add new seeders only)
+make csr    # Clean seeder registry (remove deleted seeders only)
 ```
 
 </details>
@@ -377,8 +387,9 @@ graph TD
         Q1[Generate JWT Token] -->|make gt, make gtu, make gta| J
         Q2[Database Operations] -->|make um, make sm, make smm| J
         Q3[Migrate All Models] -->|make mam| J
-        Q4[Monitor Containers] -->|make fps, make docker-logs / make dlogs| J
-        Q5[Flush Cache] -->|make flush-redis / make fr| J
+        Q4[Seeder Management] -->|make ss, make usr, make csr| J
+        Q5[Monitor Containers] -->|make fps, make docker-logs / make dlogs| J
+        Q6[Flush Cache] -->|make flush-redis / make fr| J
     end
 ```
 
@@ -391,6 +402,7 @@ graph TD
 .
 ├── cmd/                      # Command-line applications
 │   ├── api/                  # Main API application
+│   ├── seeder-mapper/        # Automatic seeder registration utility
 │   └── token-generator/      # JWT token generation utility
 ├── internal/                 # Private application code
 │   ├── bootstrap/            # Application bootstrapping
@@ -824,7 +836,7 @@ make test-log-rotation
 make test-log-rotation type=size
 # or directly
 ./scripts/test-log-rotation.sh size
-```
+```$$
 
 #### Testing Daily Rotation
 ```bash
@@ -982,6 +994,60 @@ make seed-animal
 # Run with custom count
 make seed-count count=500
 ```
+
+### Seeder Management
+
+The API provides automatic seeder registration to eliminate manual registry updates:
+
+```bash
+# Automatically register all seeders (recommended)
+make sync-seeder
+# or use alias
+make ss
+
+# Only add new seeders
+make update-seeder-registry
+# or use alias
+make usr
+
+# Only remove deleted seeders
+make clean-seeder-registry
+# or use alias
+make csr
+```
+
+**Automatic Seeder Registration Features:**
+- 🔍 **Auto-Discovery**: Scans `pkg/seeder/` for `*_seeder.go` files
+- 🔄 **Interface Validation**: Ensures seeders implement the `Seeder` interface
+- ✅ **Smart Registration**: Automatically updates `registerSeeders` function
+- 🧹 **Cleanup**: Removes references to deleted seeders
+- 📊 **Detailed Reporting**: Shows what was added/removed with counts
+
+**Seeder Requirements:**
+For automatic detection, seeders must:
+1. Be in `pkg/seeder/` directory with `*_seeder.go` naming
+2. Have struct name ending with "Seeder" (e.g., `UserSeeder`)
+3. Implement `Seed(ctx context.Context) error` and `GetName() string` methods
+4. Have constructor function `New{Name}Seeder`
+
+**Example Seeder Structure:**
+```go
+// pkg/seeder/product_seeder.go
+type ProductSeeder struct {
+    db     database.Database
+    logger *zap.Logger
+    count  int
+}
+
+func NewProductSeeder(db database.Database, logger *zap.Logger, count int) *ProductSeeder {
+    return &ProductSeeder{db: db, logger: logger, count: count}
+}
+
+func (s *ProductSeeder) GetName() string { return "product" }
+func (s *ProductSeeder) Seed(ctx context.Context) error { /* implementation */ }
+```
+
+Once created, run `make sync-seeder` to automatically register it!
 
 ### Model Management
 

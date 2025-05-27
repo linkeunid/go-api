@@ -79,6 +79,9 @@ help:
 	$(call print_help_line, make seed-count, 🔢 Run all seeders with custom record count (e.g., make seed-count count=100))
 	$(call print_help_line, make seed-animal, 🐾 Populate database with animal test data only)
 	$(call print_help_line, make seed-flower, 🌸 Populate database with flower test data only)
+	$(call print_help_line, make update-seeder-registry, 🔄 Scan and register new Go seeders for database seeding)
+	$(call print_help_line, make sync-seeder, 🔄 Add new seeders and remove deleted ones from the registry)
+	$(call print_help_line, make clean-seeder-registry, 🧹 Remove seeders from registry that no longer exist in codebase)
 	@printf "\n"
 	@printf "\033[1;36m💾 Database Operations\033[0m\n"
 	$(call print_help_line, make update-model-map, 🔄 Scan and register new Go models for database operations)
@@ -133,6 +136,9 @@ help:
 	$(call print_help_line, make um, ↩️ Alias for 'update-model-map')
 	$(call print_help_line, make cm, ↩️ Alias for 'clean-model-map')
 	$(call print_help_line, make sm, ↩️ Alias for 'sync-model-map')
+	$(call print_help_line, make usr, ↩️ Alias for 'update-seeder-registry')
+	$(call print_help_line, make csr, ↩️ Alias for 'clean-seeder-registry')
+	$(call print_help_line, make ss, ↩️ Alias for 'sync-seeder')
 	$(call print_help_line, make fr, ↩️ Alias for 'flush-redis')
 	$(call print_help_line, make gt, ↩️ Alias for 'generate-token')
 	$(call print_help_line, make gtu, ↩️ Alias for 'generate-token-user')
@@ -494,6 +500,21 @@ sync-model-map:
 	@echo "🔄 Syncing model map (adding new models and removing deleted ones)..."
 	@go run ./cmd/model-mapper -sync
 
+# Update seeder registry for database seeding operations
+update-seeder-registry:
+	@echo "🔄 Updating seeder registry for database seeding operations..."
+	@go run ./cmd/seeder-mapper
+
+# Clean seeder registry (remove seeders that no longer exist)
+clean-seeder-registry:
+	@echo "🧹 Cleaning seeder registry (removing non-existent seeders)..."
+	@go run ./cmd/seeder-mapper -clean-only
+
+# Sync seeder registry (add new seeders and remove deleted ones)
+sync-seeder:
+	@echo "🔄 Syncing seeder registry (adding new seeders and removing deleted ones)..."
+	@go run ./cmd/seeder-mapper -sync
+
 # Add a new target to explicitly flush the Redis cache
 flush-redis:
 	$(call flush_redis_cache)
@@ -590,6 +611,9 @@ mam: migrate-all-models
 um: update-model-map
 cm: clean-model-map
 sm: sync-model-map
+usr: update-seeder-registry
+csr: clean-seeder-registry
+ss: sync-seeder
 fr: flush-redis
 gt: generate-token
 gtu: generate-token-user
