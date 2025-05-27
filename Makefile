@@ -92,7 +92,7 @@ help:
 	$(call print_help_line, make fmt, ✨ Format all Go source code using go fmt)
 	$(call print_help_line, make lint, 🔍 Run golangci-lint to check code quality and style)
 	$(call print_help_line, make test-coverage, 📊 Run tests and generate detailed coverage report)
-	$(call print_help_line, make test-log-rotation, 📋 Test application log file rotation functionality)
+	$(call print_help_line, make test-log-rotation [type], 📋 Test log rotation (size|daily). Usage: make test-log-rotation type=daily)
 	$(call print_help_line, make mocks, 🧩 Generate mock interfaces for unit testing with mockgen)
 	@printf "\n"
 	@printf "\033[1;36m📚 Documentation\033[0m\n"
@@ -336,7 +336,11 @@ test-race:
 # Test log file rotation
 test-log-rotation:
 	@echo "📋 Testing log file rotation..."
-	@./scripts/test-log-rotation.sh
+	@if [ -n "$(type)" ]; then \
+		./scripts/test-log-rotation.sh $(type); \
+	else \
+		./scripts/test-log-rotation.sh; \
+	fi
 
 # Format code
 fmt:

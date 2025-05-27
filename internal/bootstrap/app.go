@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/linkeunid/go-api/internal/controller"
@@ -12,9 +11,8 @@ import (
 	"github.com/linkeunid/go-api/internal/service"
 	"github.com/linkeunid/go-api/pkg/config"
 	"github.com/linkeunid/go-api/pkg/database"
+	"github.com/linkeunid/go-api/pkg/logging"
 	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
-	"gopkg.in/natefinch/lumberjack.v2"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	gormlogger "gorm.io/gorm/logger"
@@ -41,7 +39,7 @@ func InitializeApp() (*App, error) {
 	cfg := config.LoadConfig()
 
 	// Initialize logger
-	logger, err := initializeLogger(cfg)
+	logger, err := logging.InitializeLogger(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize logger: %w", err)
 	}
@@ -69,82 +67,6 @@ func InitializeApp() (*App, error) {
 		Config:           cfg,
 		AnimalController: animalController,
 	}, nil
-}
-
-// initializeLogger creates and configures the logger
-func initializeLogger(cfg *config.Config) (*zap.Logger, error) {
-	zapConfig := zap.NewProductionConfig()
-	if cfg.IsDevelopment() {
-		zapConfig = zap.NewDevelopmentConfig()
-	}
-
-	// Configure log level
-	switch cfg.Logging.Level {
-	case "debug":
-		zapConfig.Level = zap.NewAtomicLevelAt(zapcore.DebugLevel)
-	case "info":
-		zapConfig.Level = zap.NewAtomicLevelAt(zapcore.InfoLevel)
-	case "warn":
-		zapConfig.Level = zap.NewAtomicLevelAt(zapcore.WarnLevel)
-	case "error":
-		zapConfig.Level = zap.NewAtomicLevelAt(zapcore.ErrorLevel)
-	}
-
-	// Check if file output is enabled
-	if cfg.Logging.FileOutputPath != "" {
-		// Ensure log directory exists
-		logDir := filepath.Dir(cfg.Logging.FileOutputPath)
-		if err := os.MkdirAll(logDir, 0755); err != nil {
-			return nil, fmt.Errorf("failed to create log directory %s: %w", logDir, err)
-		}
-
-		// Configure encoder based on format
-		var encoder zapcore.Encoder
-		if cfg.Logging.Format == "json" {
-			encoder = zapcore.NewJSONEncoder(zapConfig.EncoderConfig)
-		} else {
-			encoder = zapcore.NewConsoleEncoder(zapConfig.EncoderConfig)
-		}
-
-		// Setup file output with log rotation
-		fileWriter := zapcore.AddSync(&lumberjack.Logger{
-			Filename:   cfg.Logging.FileOutputPath,
-			MaxSize:    cfg.Logging.FileMaxSize,    // megabytes
-			MaxBackups: cfg.Logging.FileMaxBackups, // number of backups
-			MaxAge:     cfg.Logging.FileMaxAge,     // days
-			Compress:   cfg.Logging.FileCompress,   // compress rotated files
-		})
-
-		// Create a core that writes to the file
-		fileCore := zapcore.NewCore(encoder, fileWriter, zapConfig.Level)
-
-		// If standard output is also requested, create a multi-writer core
-		if cfg.Logging.OutputPath == "stdout" || cfg.Logging.OutputPath == "stderr" {
-			var stdWriter zapcore.WriteSyncer
-			if cfg.Logging.OutputPath == "stderr" {
-				stdWriter = zapcore.AddSync(os.Stderr)
-			} else {
-				stdWriter = zapcore.AddSync(os.Stdout)
-			}
-
-			// Create a core that writes to standard output
-			stdCore := zapcore.NewCore(encoder, stdWriter, zapConfig.Level)
-
-			// Use a tee to write to both outputs
-			return zap.New(zapcore.NewTee(fileCore, stdCore), zap.AddCaller()), nil
-		}
-
-		// Only write to file
-		return zap.New(fileCore, zap.AddCaller()), nil
-	}
-
-	// Standard zap logger with no file output
-	logger, err := zapConfig.Build()
-	if err != nil {
-		return nil, err
-	}
-
-	return logger, nil
 }
 
 // initializeDatabase sets up the database connection

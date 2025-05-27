@@ -81,6 +81,7 @@ type LoggingConfig struct {
 	FileMaxBackups int    // Maximum number of old log files to retain
 	FileMaxAge     int    // Maximum number of days to retain old log files
 	FileCompress   bool   // Whether to compress rotated log files
+	RotationType   string // Type of log rotation: "daily" or "size" (default: "daily")
 }
 
 // AuthConfig holds authentication configuration
@@ -161,6 +162,7 @@ func LoadConfig() *Config {
 			FileMaxBackups: getEnvAsInt("LOG_FILE_MAX_BACKUPS", 3),
 			FileMaxAge:     getEnvAsInt("LOG_FILE_MAX_AGE", 28),
 			FileCompress:   getEnvAsBool("LOG_FILE_COMPRESS", true),
+			RotationType:   getEnv("LOG_ROTATION_TYPE", "daily"),
 		},
 		Auth: AuthConfig{
 			Enabled:        getEnvAsBool("AUTH_ENABLED", false),

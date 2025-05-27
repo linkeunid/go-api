@@ -49,9 +49,17 @@ A comprehensive Go API project with RESTful endpoints, JWT authentication, cachi
     - [Logging Configuration](#logging-configuration)
       - [Understanding LOG\_LEVEL](#understanding-log_level)
     - [Log Output Options](#log-output-options)
-    - [Log Rotation](#log-rotation)
+    - [Log Rotation Types](#log-rotation-types)
+      - [Daily Rotation (Default)](#daily-rotation-default)
+      - [Size-based Rotation](#size-based-rotation)
+      - [Retention Settings](#retention-settings)
     - [Testing Log Rotation](#testing-log-rotation)
+      - [Testing Size-based Rotation (Default)](#testing-size-based-rotation-default)
+      - [Testing Daily Rotation](#testing-daily-rotation)
+      - [Test Script Features](#test-script-features)
+      - [Usage Examples](#usage-examples)
     - [Logging Best Practices](#logging-best-practices)
+    - [Migration from Size-based to Daily Rotation](#migration-from-size-based-to-daily-rotation)
   - [Database Operations](#database-operations)
     - [Migrations](#migrations)
     - [Seeding](#seeding)
@@ -95,7 +103,7 @@ A comprehensive Go API project with RESTful endpoints, JWT authentication, cachi
 - Database migrations and seeding
 - Environment-specific configurations
 - Comprehensive error handling
-- Logging with configurable levels and outputs
+- Advanced logging system with daily/size-based rotation and configurable outputs
 
 ## Getting Started
 
@@ -124,6 +132,7 @@ SERVER_SHUTDOWN_TIMEOUT=10s
 LOG_LEVEL=info                  # Options: debug, info, warn, error
 LOG_FORMAT=json                 # Options: json, console
 LOG_OUTPUT_PATH=stdout          # Options: stdout, stderr
+LOG_ROTATION_TYPE=daily         # Options: daily, size (default: daily)
 LOG_FILE_PATH=./logs/app.log    # Path to log file (empty = disable file logging)
 LOG_FILE_MAX_SIZE=100           # Maximum size of log files in megabytes before rotation
 LOG_FILE_MAX_BACKUPS=3          # Maximum number of old log files to retain
@@ -670,26 +679,31 @@ For optimal performance:
 
 ## Logging System
 
-The API implements a configurable logging system with the following features:
+The API implements a comprehensive logging system with the following features:
 
-- Multiple log outputs (console and/or file)
-- Log rotation for file-based logs
-- Configurable log levels and formats
-- Retention policies for old log files
+- **Multiple rotation types**: Daily rotation (default) and size-based rotation
+- **Multiple log outputs**: Console and/or file with thread-safe operations
+- **Flexible log formats**: JSON (structured) and console (human-readable)
+- **Configurable log levels**: Debug, info, warn, error with hierarchical filtering
+- **Retention policies**: Automatic cleanup of old log files
+- **Environment-aware defaults**: Different configurations for development and production
 
 ### Logging Configuration
 
 Configure logging in your `.env` file:
 
-```
+```bash
 # Basic logging configuration
 LOG_LEVEL=info                  # Options: debug, info, warn, error
 LOG_FORMAT=json                 # Options: json, console
 LOG_OUTPUT_PATH=stdout          # Options: stdout, stderr
 
-# File logging with rotation
+# Log rotation configuration
+LOG_ROTATION_TYPE=daily         # Options: daily, size (default: daily)
+
+# File logging settings
 LOG_FILE_PATH=./logs/app.log    # Path to log file (empty = disable file logging)
-LOG_FILE_MAX_SIZE=100           # Maximum size in megabytes before rotation
+LOG_FILE_MAX_SIZE=100           # Maximum size in megabytes before rotation (size-based only)
 LOG_FILE_MAX_BACKUPS=3          # Maximum number of old log files to retain
 LOG_FILE_MAX_AGE=28             # Maximum number of days to retain old log files
 LOG_FILE_COMPRESS=true          # Whether to compress rotated log files
@@ -741,51 +755,170 @@ You can configure the logger to output to:
 2. **File Only**: Set `LOG_FILE_PATH` to a valid path and `LOG_OUTPUT_PATH` to anything except stdout/stderr
 3. **Both Console and File**: Set both `LOG_FILE_PATH` to a valid path and `LOG_OUTPUT_PATH=stdout` or `LOG_OUTPUT_PATH=stderr`
 
-### Log Rotation
+### Log Rotation Types
 
-When file logging is enabled, logs will automatically rotate when:
+The logging system supports two rotation strategies:
 
-- The file reaches the specified maximum size (`LOG_FILE_MAX_SIZE` in megabytes)
-- The maximum number of backup files is limited by `LOG_FILE_MAX_BACKUPS`
-- Old log files older than `LOG_FILE_MAX_AGE` days are automatically deleted
+#### Daily Rotation (Default)
+
+Creates a new log file each day with date-based naming:
+
+```
+logs/
+├── app-2024-01-15.log    # Today's logs
+├── app-2024-01-14.log    # Yesterday's logs
+├── app-2024-01-13.log    # Previous day's logs
+└── app-2024-01-12.log    # Older daily logs
+```
+
+**Benefits:**
+- Easy to find logs by specific date
+- Clear temporal organization for debugging
+- Automatic midnight rotation
+
+**Configuration:**
+```bash
+LOG_ROTATION_TYPE=daily
+```
+
+#### Size-based Rotation
+
+Rotates when log files reach the specified size limit:
+
+```
+logs/
+├── app.log                           # Current active log file
+├── app.log.2024-01-15T10-30-00.000   # Rotated backup 1
+├── app.log.2024-01-14T15-45-20.000   # Rotated backup 2
+└── app.log.2024-01-13T09-12-45.000   # Rotated backup 3
+```
+
+**Benefits:**
+- Predictable file sizes for storage planning
+- Works well with existing log management tools
+- Suitable for high-volume logging scenarios
+
+**Configuration:**
+```bash
+LOG_ROTATION_TYPE=size
+LOG_FILE_MAX_SIZE=100  # Rotate when file reaches 100MB
+```
+
+#### Retention Settings
+
+Both rotation types support the same retention policies:
+
+- `LOG_FILE_MAX_BACKUPS`: Maximum number of old log files to retain
+- `LOG_FILE_MAX_AGE`: Maximum number of days to retain old log files
+- `LOG_FILE_COMPRESS`: Whether to compress rotated log files
 
 ### Testing Log Rotation
 
-The project includes a script to test log rotation functionality:
+The project includes a comprehensive script to test both rotation types:
 
+#### Testing Size-based Rotation (Default)
 ```bash
-# Run the log rotation test
+# Test size-based rotation (quick test, triggers rotation)
 make test-log-rotation
 # or
-./scripts/test-log-rotation.sh
+make test-log-rotation type=size
+# or directly
+./scripts/test-log-rotation.sh size
 ```
 
-This script:
-1. Creates a temporary environment with small log file size limits
-2. Runs the API with file logging enabled
-3. Generates enough log entries to trigger rotation
-4. Shows the resulting log files
-5. Restores the original environment configuration
+#### Testing Daily Rotation
+```bash
+# Test daily rotation setup (verifies daily file creation)
+make test-log-rotation type=daily
+# or directly
+./scripts/test-log-rotation.sh daily
+```
+
+#### Test Script Features
+
+**Size-based rotation test:**
+1. Creates temporary environment with 1MB file size limit
+2. Runs API with size-based rotation enabled
+3. Generates log entries to trigger rotation
+4. Verifies backup file creation
+5. Shows resulting rotated files
+
+**Daily rotation test:**
+1. Creates temporary environment with daily rotation
+2. Runs API and verifies daily log file creation (`app-YYYY-MM-DD.log`)
+3. Generates log entries to populate daily log
+4. Shows current daily log file size
+5. Provides guidance for testing actual midnight rotation
+
+**Both tests:**
+- Backup and restore original `.env` file
+- Clean process termination
+- Port availability checking
+- Comprehensive error handling
+
+#### Usage Examples
+```bash
+# Quick size-based rotation test
+make test-log-rotation
+
+# Test daily rotation setup
+make test-log-rotation type=daily
+
+# Get help for test options
+./scripts/test-log-rotation.sh --help
+```
 
 ### Logging Best Practices
 
 For optimal logging:
 
 1. **Choose Appropriate Log Levels**:
-   - Use `debug` for detailed troubleshooting
-   - Use `info` for general operational information
-   - Use `warn` for concerning but non-critical issues
-   - Use `error` for serious problems
+   - **Development**: Use `debug` to see all logs including detailed debugging information
+   - **Testing**: Use `info` to see normal operational logs plus warnings and errors
+   - **Production**: Use `warn` or `error` to reduce log volume and focus on important issues
 
-2. **Configure Rotation Settings**:
-   - Set reasonable file size limits based on disk space
-   - Adjust retention period based on compliance requirements
-   - Enable compression for long-term storage
+2. **Select the Right Rotation Type**:
+   - **Daily Rotation**: Best for date-specific debugging and temporal organization
+   - **Size-based Rotation**: Best for predictable storage usage and high-volume scenarios
+   - **Consider your debugging patterns**: Choose daily if you often need to find logs by date
 
-3. **Production Settings**:
-   - In production, consider using a log aggregation system
-   - Set higher log levels (`warn` or `error`) to reduce disk I/O
-   - Ensure log directories have appropriate permissions
+3. **Configure Retention Settings**:
+   - Set `LOG_FILE_MAX_AGE` based on compliance and debugging requirements
+   - Adjust `LOG_FILE_MAX_BACKUPS` based on available disk space
+   - Enable compression (`LOG_FILE_COMPRESS=true`) for long-term storage
+
+4. **Environment-specific Settings**:
+   - **Development**: Use console output with daily rotation for easy debugging
+   - **Production**: Use file-only output with appropriate log levels and retention
+   - **Consider log aggregation systems** for production environments
+
+5. **Performance Considerations**:
+   - Use higher log levels in production to reduce I/O
+   - Enable compression for rotated files to save disk space
+   - Ensure log directories have appropriate permissions and sufficient space
+
+### Migration from Size-based to Daily Rotation
+
+If you're upgrading from a previous version that used only size-based rotation:
+
+**To keep the existing behavior:**
+```bash
+# Explicitly set size-based rotation
+LOG_ROTATION_TYPE=size
+```
+
+**To migrate to daily rotation (recommended):**
+```bash
+# Set daily rotation (or simply remove the variable, as daily is the default)
+LOG_ROTATION_TYPE=daily
+```
+
+**What changes:**
+- **File naming**: From `app.log` → `app-2024-01-15.log`
+- **Rotation trigger**: From file size → date change at midnight
+- **Organization**: Logs grouped by date instead of size
+
+**Backward compatibility:** All existing configuration variables are still supported.
 
 </details>
 
